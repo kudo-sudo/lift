@@ -1,4 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import './App.css'
 
 const storageKey = 'lift.home.v1'
@@ -222,11 +232,58 @@ function App() {
     }
     if (confirmState.type === 'library') {
       const { entry, index } = confirmState
+      const removedPlanItems = planItems
+        .map((item, itemIndex) => ({ item, itemIndex }))
+        .filter((wrapped) => wrapped.item.title === entry.name)
+      const removedIds = removedPlanItems.map((wrapped) => wrapped.item.id)
+      const removedDone = doneItems.filter((id) => removedIds.includes(id))
+      const removedExpanded = expandedItems.filter((id) => removedIds.includes(id))
+      const removedSetChecks = removedIds.reduce((acc, id) => {
+        if (setChecks[id]) {
+          acc[id] = setChecks[id]
+        }
+        return acc
+      }, {})
+      const removedRecords = workoutRecords[entry.name] || []
+      const removedTargetWeight = liftTargetWeights[entry.name] || ''
+
       setExerciseLibrary((prev) => prev.filter((item) => item.id !== entry.id))
+      if (removedPlanItems.length > 0) {
+        setPlanItems((prev) =>
+          prev.filter((item) => item.title !== entry.name)
+        )
+        setDoneItems((prev) => prev.filter((id) => !removedIds.includes(id)))
+        setExpandedItems((prev) => prev.filter((id) => !removedIds.includes(id)))
+        setSetChecks((prev) => {
+          const next = { ...prev }
+          removedIds.forEach((id) => {
+            delete next[id]
+          })
+          return next
+        })
+      }
+      setWorkoutRecords((prev) => {
+        if (!prev[entry.name]) return prev
+        const next = { ...prev }
+        delete next[entry.name]
+        return next
+      })
+      setLiftTargetWeights((prev) => {
+        if (!prev[entry.name]) return prev
+        const next = { ...prev }
+        delete next[entry.name]
+        return next
+      })
       showUndo({
         type: 'library',
         entry,
         index,
+        removedPlanItems,
+        removedDone,
+        removedExpanded,
+        removedSetChecks,
+        removedRecords,
+        removedTargetWeight,
       })
     }
     setConfirmState(null)
@@ -271,12 +328,42 @@ function App() {
       })
     }
     if (undoState.type === 'library') {
-      const { entry, index } = undoState
+      const {
+        entry,
+        index,
+        removedPlanItems,
+        removedDone,
+        removedExpanded,
+        removedSetChecks,
+        removedRecords,
+        removedTargetWeight,
+      } = undoState
       setExerciseLibrary((prev) => {
         const next = [...prev]
         next.splice(index, 0, entry)
         return next
       })
+      if (removedPlanItems && removedPlanItems.length > 0) {
+        setPlanItems((prev) => {
+          const next = [...prev]
+          removedPlanItems
+            .slice()
+            .sort((a, b) => a.itemIndex - b.itemIndex)
+            .forEach((wrapped) => {
+              next.splice(wrapped.itemIndex, 0, wrapped.item)
+            })
+          return next
+        })
+        setDoneItems((prev) => [...prev, ...removedDone])
+        setExpandedItems((prev) => [...prev, ...removedExpanded])
+        setSetChecks((prev) => ({ ...prev, ...removedSetChecks }))
+      }
+      if (removedRecords && removedRecords.length > 0) {
+        setWorkoutRecords((prev) => ({ ...prev, [entry.name]: removedRecords }))
+      }
+      if (removedTargetWeight) {
+        setLiftTargetWeights((prev) => ({ ...prev, [entry.name]: removedTargetWeight }))
+      }
     }
     setUndoState(null)
     if (undoTimerRef.current) {
@@ -454,6 +541,30 @@ function App() {
     }))
   }
 
+  const getMaxUpdateRecords = (records, limit) => {
+    const updates = []
+    let max = -Infinity
+    const ordered = [...records].reverse()
+    ordered.forEach((record) => {
+      const value = Number.parseFloat(record.weight)
+      if (Number.isFinite(value) && value > max) {
+        max = value
+        updates.push(record)
+      }
+    })
+    if (limit) {
+      return updates.slice(-limit).reverse()
+    }
+    return updates
+  }
+
+  const formatShortDate = (value) => {
+    if (!value) return ''
+    const [, month, day] = String(value).split('-')
+    if (!month || !day) return value
+    return `${month}/${day}`
+  }
+
   const handleRecordOpen = (item) => {
     const today = new Date().toISOString().slice(0, 10)
     setRecordExercise(item.title)
@@ -510,8 +621,8 @@ function App() {
                 <button
                   className="icon-button"
                   type="button"
-                  onClick={handleAddOpen}
-                  aria-label="Today plan add"
+                  onClick={() => setActiveTab('add')}
+                  aria-label="Go to Add"
                 >
                   <svg viewBox="0 0 24 24">
                     <path d="M12 5v14M5 12h14" />
@@ -853,45 +964,192 @@ function App() {
                   )}
                   {filteredLiftTargets.length > 0 && (
                     <ul className="target-list">
-                      {filteredLiftTargets.map((target) => (
-                        <li
-                          className={`target-item ${
-                            expandedLiftTargets[target.name] ? 'open' : ''
-                          }`}
-                          key={target.name}
-                        >
-                          <button
-                            className="target-row"
-                            type="button"
-                            onClick={() => handleLiftTargetToggle(target.name)}
+                      {filteredLiftTargets.map((target, targetIndex) => {
+                        const records = workoutRecords[target.name] || []
+                        const maxUpdateRecords = getMaxUpdateRecords(records, 5)
+                        const maxUpdateSeries = getMaxUpdateRecords(records)
+                          .map((record) => ({
+                            date: record.date,
+                            weight: Number.parseFloat(record.weight),
+                          }))
+                          .filter((entry) => Number.isFinite(entry.weight))
+                        const latestRecord = records[0]
+                        const targetWeight = Number.parseFloat(
+                          liftTargetWeights[target.name]
+                        )
+                        const latestValue = Number.parseFloat(latestRecord?.weight)
+                        const remaining = Number.isFinite(targetWeight)
+                          ? Math.max(
+                              targetWeight - (Number.isFinite(latestValue) ? latestValue : 0),
+                              0
+                            )
+                          : null
+                        const showTargetChart =
+                          Number.isFinite(targetWeight) && maxUpdateSeries.length > 0
+                        const chartId = `lift-target-${targetIndex}`
+                        const minSeriesWeight = showTargetChart
+                          ? Math.min(...maxUpdateSeries.map((entry) => entry.weight))
+                          : 0
+                        const minBuffer = showTargetChart
+                          ? Math.max(2, minSeriesWeight * 0.05)
+                          : 0
+                        const maxBuffer = showTargetChart
+                          ? Math.max(2, targetWeight * 0.05)
+                          : 0
+                        const yMin = showTargetChart
+                          ? Math.max(0, minSeriesWeight - minBuffer)
+                          : 0
+                        const yMax = showTargetChart ? targetWeight + maxBuffer : 0
+
+                        return (
+                          <li
+                            className={`target-item ${
+                              expandedLiftTargets[target.name] ? 'open' : ''
+                            }`}
+                            key={target.name}
                           >
-                            <span className="target-name">{target.name}</span>
-                            <span className="target-row-toggle" aria-hidden="true">
-                              <svg viewBox="0 0 24 24">
-                                <path d="M6 9l6 6 6-6" />
-                              </svg>
-                            </span>
-                          </button>
-                          {expandedLiftTargets[target.name] && (
-                            <div className="target-panel">
-                              <label className="target-edit">
-                                <span className="target-edit-label">目標重量</span>
-                                <input
-                                  className="target-input"
-                                  value={liftTargetWeights[target.name] || ''}
-                                  onChange={(event) =>
-                                    handleLiftTargetChange(
-                                      target.name,
-                                      event.target.value
-                                    )
-                                  }
-                                  placeholder="Target (kg)"
-                                />
-                              </label>
-                            </div>
-                          )}
-                        </li>
-                      ))}
+                            <button
+                              className="target-row"
+                              type="button"
+                              onClick={() => handleLiftTargetToggle(target.name)}
+                            >
+                              <span className="target-name">{target.name}</span>
+                              <span className="target-row-toggle" aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                  <path d="M6 9l6 6 6-6" />
+                                </svg>
+                              </span>
+                            </button>
+                            {expandedLiftTargets[target.name] && (
+                              <div className="target-panel">
+                                <div className="target-panel-header">
+                                  <span className="target-panel-name">{target.name}</span>
+                                  <span className="target-panel-weight">
+                                    目標 {liftTargetWeights[target.name] || '--'} kg
+                                  </span>
+                                </div>
+                                <div className="target-panel-message">
+                                  {remaining === null
+                                    ? '目標重量を入力してください'
+                                    : `達成まであと ${remaining} kg`}
+                                </div>
+                                <label className="target-edit">
+                                  <span className="target-edit-label">目標重量</span>
+                                  <input
+                                    className="target-input"
+                                    value={liftTargetWeights[target.name] || ''}
+                                    onChange={(event) =>
+                                      handleLiftTargetChange(
+                                        target.name,
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="Target (kg)"
+                                  />
+                                </label>
+                                {showTargetChart && (
+                                  <div className="target-chart">
+                                    <div className="target-chart-title">
+                                      Max Update
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={180}>
+                                      <AreaChart data={maxUpdateSeries} margin={{
+                                        top: 10,
+                                        right: 16,
+                                        left: -8,
+                                        bottom: 0,
+                                      }}>
+                                        <defs>
+                                          <linearGradient
+                                            id={chartId}
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                          >
+                                            <stop
+                                              offset="0%"
+                                              stopColor="#2d9cff"
+                                              stopOpacity={0.4}
+                                            />
+                                            <stop
+                                              offset="100%"
+                                              stopColor="#2d9cff"
+                                              stopOpacity={0.05}
+                                            />
+                                          </linearGradient>
+                                        </defs>
+                                        <CartesianGrid
+                                          stroke="rgba(255, 255, 255, 0.08)"
+                                          vertical={false}
+                                        />
+                                        <XAxis
+                                          dataKey="date"
+                                          tickFormatter={formatShortDate}
+                                          stroke="rgba(255, 255, 255, 0.4)"
+                                          tick={{ fill: '#9aa3af', fontSize: 11 }}
+                                          axisLine={false}
+                                          tickLine={false}
+                                        />
+                                        <YAxis
+                                          domain={[yMin, yMax]}
+                                          stroke="rgba(255, 255, 255, 0.4)"
+                                          tick={{ fill: '#9aa3af', fontSize: 11 }}
+                                          axisLine={false}
+                                          tickLine={false}
+                                          width={36}
+                                        />
+                                        <Tooltip
+                                          labelFormatter={formatShortDate}
+                                          formatter={(value) => [`${value} kg`, 'MAX']}
+                                          contentStyle={{
+                                            background: 'rgba(12, 14, 18, 0.95)',
+                                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                                            borderRadius: '12px',
+                                          }}
+                                          labelStyle={{ color: '#9aa3af' }}
+                                        />
+                                        <ReferenceLine
+                                          y={targetWeight}
+                                          stroke="#ff6b6b"
+                                          strokeDasharray="6 6"
+                                          label={{
+                                            value: '目標ライン',
+                                            fill: '#ff6b6b',
+                                            fontSize: 11,
+                                            position: 'right',
+                                          }}
+                                        />
+                                        <Area
+                                          type="monotone"
+                                          dataKey="weight"
+                                          stroke="#2d9cff"
+                                          strokeWidth={2}
+                                          fill={`url(#${chartId})`}
+                                        />
+                                      </AreaChart>
+                                    </ResponsiveContainer>
+                                  </div>
+                                )}
+                                {maxUpdateRecords.length > 0 && (
+                                  <div className="target-records">
+                                    {maxUpdateRecords.map((record) => (
+                                      <div className="target-record" key={record.id}>
+                                        <span className="target-record-date">
+                                          {record.date}
+                                        </span>
+                                        <span className="target-record-weight">
+                                          {record.weight} kg
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        )
+                      })}
                     </ul>
                   )}
                 </div>
@@ -1060,7 +1318,7 @@ function App() {
                 ? `${confirmState.item.title} を削除しますか？`
                 : confirmState.type === 'set'
                   ? `${confirmState.planTitle} / ${confirmState.setItem.title} を削除しますか？`
-                  : `${confirmState.entry.name} を削除しますか？`}
+                  : `${confirmState.entry.name} を削除しますか？\nHome と Goals からも削除されます。`}
             </div>
             <div className="confirm-actions">
               <button className="ghost-button" type="button" onClick={() => setConfirmState(null)}>
