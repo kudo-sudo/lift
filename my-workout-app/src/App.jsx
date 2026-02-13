@@ -12,6 +12,25 @@ import {
 import './App.css'
 
 const storageKey = 'lift.home.v1'
+const weekDaysShort = ['日', '月', '火', '水', '木', '金', '土']
+const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+
+const getTodayKey = () => new Date().toISOString().slice(0, 10)
+const pad2 = (value) => String(value).padStart(2, '0')
+const formatDateKey = (year, monthIndex, day) =>
+  `${year}-${pad2(monthIndex + 1)}-${pad2(day)}`
+const formatHistoryDate = (value) => {
+  if (!value) return ''
+  const [year, month, day] = String(value).split('-')
+  if (!year || !month || !day) return value
+  return `${year}年${month}月${day}日`
+}
+const getHeroDateLabel = () => {
+  const today = new Date()
+  return `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日（${
+    weekDaysShort[today.getDay()]
+  }）`
+}
 
 const initialPlan = [
   {
@@ -37,6 +56,7 @@ function App() {
     bench: [false, false, false, false],
   })
   const [workoutRecords, setWorkoutRecords] = useState({})
+  const [planDate, setPlanDate] = useState(getTodayKey())
   const [isHydrated, setIsHydrated] = useState(false)
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [isRecordOpen, setIsRecordOpen] = useState(false)
@@ -48,38 +68,59 @@ function App() {
   const [draftExerciseName, setDraftExerciseName] = useState('')
   const [draftBodyPart, setDraftBodyPart] = useState('')
   const [libraryQuery, setLibraryQuery] = useState('')
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [expandedBodyParts, setExpandedBodyParts] = useState({})
   const [goalsView, setGoalsView] = useState('main')
   const [liftQuery, setLiftQuery] = useState('')
   const [liftTargetWeights, setLiftTargetWeights] = useState({})
   const [expandedLiftTargets, setExpandedLiftTargets] = useState({})
-  const [recordExercise, setRecordExercise] = useState('')
+  const [bodyWeightTarget, setBodyWeightTarget] = useState('')
+  const [bodyWeightRecords, setBodyWeightRecords] = useState([])
+  const [isWeightRecordOpen, setIsWeightRecordOpen] = useState(false)
+  const [weightRecordDate, setWeightRecordDate] = useState('')
+  const [weightRecordValue, setWeightRecordValue] = useState('')
+  const [isNextScheduleOpen, setIsNextScheduleOpen] = useState(false)
+  const [nextScheduleDate, setNextScheduleDate] = useState('')
+  const [streakGoal, setStreakGoal] = useState({
+    weeklyTarget: '',
+    monthlyTarget: '',
+  })
   const [recordDate, setRecordDate] = useState('')
   const [recordWeight, setRecordWeight] = useState('')
+  const [recordMemo, setRecordMemo] = useState('')
+  const [historyDate, setHistoryDate] = useState(getTodayKey())
+  const [historyMonth, setHistoryMonth] = useState(new Date().getMonth())
+  const [historyYear, setHistoryYear] = useState(new Date().getFullYear())
   const undoTimerRef = useRef(null)
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey)
     if (!stored) {
+      setPlanDate(getTodayKey())
       setIsHydrated(true)
       return
     }
     try {
       const parsed = JSON.parse(stored)
+      const todayKey = getTodayKey()
+      const storedPlanDate =
+        typeof parsed.planDate === 'string' ? parsed.planDate : null
+      const isSameDay = storedPlanDate === todayKey
+
       if (Array.isArray(parsed.planItems)) {
-        setPlanItems(parsed.planItems)
+        setPlanItems(isSameDay ? parsed.planItems : [])
       }
       if (Array.isArray(parsed.doneItems)) {
-        setDoneItems(parsed.doneItems)
+        setDoneItems(isSameDay ? parsed.doneItems : [])
       }
       if (Array.isArray(parsed.exerciseLibrary)) {
         setExerciseLibrary(parsed.exerciseLibrary)
       }
       if (Array.isArray(parsed.expandedItems)) {
-        setExpandedItems(parsed.expandedItems)
+        setExpandedItems(isSameDay ? parsed.expandedItems : [])
       }
       if (parsed.setChecks && typeof parsed.setChecks === 'object') {
-        setSetChecks(parsed.setChecks)
+        setSetChecks(isSameDay ? parsed.setChecks : {})
       }
       if (parsed.workoutRecords && typeof parsed.workoutRecords === 'object') {
         setWorkoutRecords(parsed.workoutRecords)
@@ -87,11 +128,49 @@ function App() {
       if (parsed.liftTargetWeights && typeof parsed.liftTargetWeights === 'object') {
         setLiftTargetWeights(parsed.liftTargetWeights)
       }
+      if (
+        typeof parsed.bodyWeightTarget === 'string' ||
+        typeof parsed.bodyWeightTarget === 'number'
+      ) {
+        setBodyWeightTarget(String(parsed.bodyWeightTarget))
+      }
+      if (Array.isArray(parsed.bodyWeightRecords)) {
+        setBodyWeightRecords(parsed.bodyWeightRecords)
+      }
+      if (parsed.streakGoal && typeof parsed.streakGoal === 'object') {
+        setStreakGoal(parsed.streakGoal)
+      }
+      if (typeof parsed.nextScheduleDate === 'string') {
+        setNextScheduleDate(parsed.nextScheduleDate)
+      }
+      setPlanDate(isSameDay ? storedPlanDate ?? todayKey : todayKey)
     } catch (error) {
       console.warn('LIFT storage load failed', error)
     }
     setIsHydrated(true)
   }, [])
+
+  useEffect(() => {
+    if (!isHydrated) return
+    const timer = window.setInterval(() => {
+      const todayKey = getTodayKey()
+      if (planDate !== todayKey) {
+        setPlanDate(todayKey)
+        setPlanItems([])
+        setDoneItems([])
+        setExpandedItems([])
+        setSetChecks({})
+      }
+    }, 60000)
+    return () => window.clearInterval(timer)
+  }, [isHydrated, planDate])
+
+  useEffect(() => {
+    const monthKey = `${historyYear}-${pad2(historyMonth + 1)}`
+    if (!historyDate.startsWith(monthKey)) {
+      setHistoryDate(formatDateKey(historyYear, historyMonth, 1))
+    }
+  }, [historyDate, historyMonth, historyYear])
 
   useEffect(() => {
     if (!isHydrated) return
@@ -103,6 +182,11 @@ function App() {
       setChecks,
       workoutRecords,
       liftTargetWeights,
+      bodyWeightTarget,
+      bodyWeightRecords,
+      streakGoal,
+      nextScheduleDate,
+      planDate,
     }
     window.localStorage.setItem(storageKey, JSON.stringify(payload))
   }, [
@@ -113,6 +197,11 @@ function App() {
     setChecks,
     workoutRecords,
     liftTargetWeights,
+    bodyWeightTarget,
+    bodyWeightRecords,
+    streakGoal,
+    nextScheduleDate,
+    planDate,
     isHydrated,
   ])
 
@@ -441,6 +530,7 @@ function App() {
       id: `lib-${Date.now()}`,
       name,
       bodyPart,
+      favorite: false,
     }
     setExerciseLibrary((prev) => [entry, ...prev])
     setDraftExerciseName('')
@@ -463,6 +553,14 @@ function App() {
     setIsAddOpen(true)
   }
 
+  const handleLibraryToggleFavorite = (entryId) => {
+    setExerciseLibrary((prev) =>
+      prev.map((item) =>
+        item.id === entryId ? { ...item, favorite: !item.favorite } : item
+      )
+    )
+  }
+
   const groupedLibrary = useMemo(() => {
     const groups = new Map()
     exerciseLibrary.forEach((item) => {
@@ -479,8 +577,20 @@ function App() {
 
   const filteredLibrary = useMemo(() => {
     const query = libraryQuery.trim().toLowerCase()
-    if (!query) return groupedLibrary
-    return groupedLibrary
+    let baseGroups = groupedLibrary
+
+    if (showFavoritesOnly) {
+      baseGroups = baseGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => item.favorite),
+        }))
+        .filter((group) => group.items.length > 0)
+    }
+
+    if (!query) return baseGroups
+
+    return baseGroups
       .map((group) => {
         const matchesBodyPart = group.bodyPart.toLowerCase().includes(query)
         const items = group.items.filter((item) =>
@@ -489,7 +599,7 @@ function App() {
         return matchesBodyPart ? group : { ...group, items }
       })
       .filter((group) => group.items.length > 0)
-  }, [groupedLibrary, libraryQuery])
+  }, [groupedLibrary, libraryQuery, showFavoritesOnly])
 
   const bodyPartOptions = useMemo(() => {
     const parts = new Set()
@@ -570,6 +680,7 @@ function App() {
     setRecordExercise(item.title)
     setRecordDate(today)
     setRecordWeight('')
+    setRecordMemo('')
     setIsRecordOpen(true)
   }
 
@@ -578,6 +689,7 @@ function App() {
     setRecordExercise('')
     setRecordDate('')
     setRecordWeight('')
+    setRecordMemo('')
   }
 
   const handleRecordSubmit = (event) => {
@@ -586,7 +698,9 @@ function App() {
     const entry = {
       id: `rec-${Date.now()}`,
       date: recordDate,
+      type: recordExercise,
       weight: recordWeight,
+      memo: recordMemo.trim(),
     }
     setWorkoutRecords((prev) => {
       const current = prev[recordExercise] || []
@@ -595,21 +709,176 @@ function App() {
     handleRecordClose()
   }
 
+  const recordsByDate = useMemo(() => {
+    const map = new Map()
+    Object.entries(workoutRecords).forEach(([exercise, records]) => {
+      records.forEach((record) => {
+        if (!record?.date) return
+        const list = map.get(record.date) || []
+        list.push({
+          id: record.id,
+          date: record.date,
+          type: record.type || exercise,
+          weight: record.weight,
+          memo: record.memo || '',
+        })
+        map.set(record.date, list)
+      })
+    })
+    return map
+  }, [workoutRecords])
+
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(historyYear, historyMonth, 1)
+    const totalDays = new Date(historyYear, historyMonth + 1, 0).getDate()
+    const leadingEmpty = firstDay.getDay()
+    const cells = Array.from({ length: leadingEmpty }).map(() => null)
+    for (let day = 1; day <= totalDays; day += 1) {
+      cells.push(day)
+    }
+    while (cells.length % 7 !== 0) {
+      cells.push(null)
+    }
+    return cells
+  }, [historyMonth, historyYear])
+
+  const selectedHistoryRecords = useMemo(() => {
+    return recordsByDate.get(historyDate) || []
+  }, [recordsByDate, historyDate])
+
+  const monthlyWorkoutCount = useMemo(() => {
+    const monthPrefix = `${historyYear}-${pad2(historyMonth + 1)}`
+    let count = 0
+    recordsByDate.forEach((records, dateKey) => {
+      if (dateKey.startsWith(monthPrefix) && records.length > 0) {
+        count += 1
+      }
+    })
+    return count
+  }, [historyMonth, historyYear, recordsByDate])
+
+  const weeklyWorkoutCount = useMemo(() => {
+    const today = new Date()
+    // Get Monday of current week (ISO week: Monday = 1, Sunday = 0)
+    const dayOfWeek = today.getDay()
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const monday = new Date(today.getFullYear(), today.getMonth(), diff)
+    
+    let count = 0
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      const year = d.getFullYear()
+      const month = pad2(d.getMonth() + 1)
+      const date = pad2(d.getDate())
+      const dateKey = `${year}-${month}-${date}`
+      
+      const records = recordsByDate.get(dateKey)
+      if (records && records.length > 0) {
+        count += 1
+      }
+    }
+    return count
+  }, [recordsByDate])
+
+  const handleHistoryPrevMonth = () => {
+    setHistoryMonth((prev) => {
+      if (prev === 0) {
+        setHistoryYear((year) => year - 1)
+        return 11
+      }
+      return prev - 1
+    })
+  }
+
+  const handleHistoryNextMonth = () => {
+    setHistoryMonth((prev) => {
+      if (prev === 11) {
+        setHistoryYear((year) => year + 1)
+        return 0
+      }
+      return prev + 1
+    })
+  }
+
+  const handleWeightRecordOpen = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    setWeightRecordDate(today)
+    setWeightRecordValue('')
+    setIsWeightRecordOpen(true)
+  }
+
+  const handleWeightRecordClose = () => {
+    setIsWeightRecordOpen(false)
+    setWeightRecordDate('')
+    setWeightRecordValue('')
+  }
+
+  const handleWeightRecordSubmit = (event) => {
+    event.preventDefault()
+    if (!weightRecordDate || !weightRecordValue) return
+    const entry = {
+      id: `weight-${Date.now()}`,
+      date: weightRecordDate,
+      value: weightRecordValue,
+    }
+    setBodyWeightRecords((prev) => [entry, ...prev])
+    handleWeightRecordClose()
+  }
+
+  const handleNextScheduleOpen = () => {
+    setNextScheduleDate((prev) => prev || getTodayKey())
+    setIsNextScheduleOpen(true)
+  }
+
+  const handleNextScheduleClose = () => {
+    setIsNextScheduleOpen(false)
+  }
+
+  const handleNextScheduleSubmit = (event) => {
+    event.preventDefault()
+    if (!nextScheduleDate) return
+    setIsNextScheduleOpen(false)
+  }
+
+  const recentWeightRecords = useMemo(() => {
+    return bodyWeightRecords
+      .slice(0, 20)
+      .reverse()
+      .map((record) => ({
+        date: record.date,
+        value: Number.parseFloat(record.value),
+      }))
+      .filter((entry) => Number.isFinite(entry.value))
+  }, [bodyWeightRecords])
+
+  const weightChartReady = bodyWeightTarget && recentWeightRecords.length > 0
+  const minWeight = weightChartReady
+    ? Math.min(...recentWeightRecords.map((entry) => entry.value))
+    : 0
+  const targetWeightNum = Number.parseFloat(bodyWeightTarget)
+  const minBuffer = weightChartReady ? Math.max(1, minWeight * 0.05) : 0
+  const maxBuffer = weightChartReady ? Math.max(1, targetWeightNum * 0.05) : 0
+  const yMinWeight = weightChartReady ? Math.max(0, minWeight - minBuffer) : 0
+  const yMaxWeight = weightChartReady ? targetWeightNum + maxBuffer : 0
+
   return (
     <div className="app">
       <header className="hero">
         <div className="brand">
           <div className="brand-mark">LIFT</div>
         </div>
-        <div className="hero-card">
-          <div className="hero-date">Mon · Feb 9</div>
-          <div className="hero-progress">
-            <span>{progress.done}</span>
-            <span className="hero-progress-divider">/</span>
-            <span>{progress.total}</span>
-            <span className="hero-progress-label">done</span>
+        {activeTab === 'home' && (
+          <div className="hero-card">
+            <div className="hero-date">{getHeroDateLabel()}</div>
+            <div className="hero-progress">
+              <span>{progress.done}</span>
+              <span className="hero-progress-divider">/</span>
+              <span>{progress.total}</span>
+              <span className="hero-progress-label">done</span>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {activeTab === 'home' && (
@@ -637,6 +906,18 @@ function App() {
                 </button>
               </div>
             </div>
+            {planItems.length === 0 && (
+              <div className="empty-state">
+                <div className="empty-title">今日のメニューがありません</div>
+                <button
+                  className="solid-button"
+                  type="button"
+                  onClick={() => setActiveTab('add')}
+                >
+                  Addタブから追加
+                </button>
+              </div>
+            )}
             <ul className="checklist">
               {planItems.map((item, index) => {
                 const isDone = doneItems.includes(item.id)
@@ -754,18 +1035,33 @@ function App() {
           </section>
 
           <section className="section stats">
-            <div>
-              <div className="stat-label">連続記録</div>
-              <div className="stat-value">12 days</div>
-            </div>
-            <div>
-              <div className="stat-label">次の休養</div>
-              <div className="stat-value">Tomorrow</div>
-            </div>
-            <div>
-              <div className="stat-label">Focus</div>
-              <div className="stat-value">Push power</div>
-            </div>
+            <button
+              className="stat-card"
+              type="button"
+              onClick={() => {
+                const today = new Date().toISOString().slice(0, 10)
+                setWeightRecordDate(today)
+                setWeightRecordValue('')
+                setIsWeightRecordOpen(true)
+              }}
+            >
+              <div className="stat-label">体重を記録</div>
+              <div className="stat-value">
+                {bodyWeightRecords.length > 0
+                  ? `${bodyWeightRecords[0].value} kg`
+                  : '--'}
+              </div>
+            </button>
+            <button
+              className="stat-card"
+              type="button"
+              onClick={handleNextScheduleOpen}
+            >
+              <div className="stat-label">次回日程</div>
+              <div className="stat-value">
+                {nextScheduleDate ? formatHistoryDate(nextScheduleDate) : '--'}
+              </div>
+            </button>
           </section>
         </main>
       )}
@@ -776,6 +1072,9 @@ function App() {
             <div className="section-header">
               <h2>Exercise Library</h2>
               <div className="section-meta">部位ごとに整理</div>
+            </div>
+            <div className="library-hint">
+              プラスボタンを押してToday Planに追加
             </div>
             <div className="library-search">
               <span className="search-icon" aria-hidden="true">
@@ -788,7 +1087,7 @@ function App() {
                 className="search-input"
                 value={libraryQuery}
                 onChange={(event) => setLibraryQuery(event.target.value)}
-                placeholder="Search workouts or body part"
+                placeholder="種目名や部位で検索"
               />
             </div>
             <form className="library-form" onSubmit={handleLibrarySubmit}>
@@ -825,6 +1124,16 @@ function App() {
               </div>
             </form>
 
+            <div className="library-filters">
+              <button
+                className={`ghost-button ${showFavoritesOnly ? 'is-active' : ''}`}
+                type="button"
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+              >
+                お気に入りのみ
+              </button>
+            </div>
+
             <div className="library-groups">
               {exerciseLibrary.length === 0 && (
                 <div className="empty-state">まだ登録されていません</div>
@@ -854,10 +1163,25 @@ function App() {
                     </button>
                     <ul className="library-list" aria-hidden={!isExpanded}>
                       {group.items.map((entry) => (
-                        <li className="library-item" key={entry.id}>
+                        <li
+                          className={`library-item ${entry.favorite ? 'is-favorite' : ''}`}
+                          key={entry.id}
+                        >
                           <span>{entry.name}</span>
                           <div className="library-item-actions">
-                            <span className="library-tag">Saved</span>
+                            <button
+                              className={`library-favorite ${
+                                entry.favorite ? 'is-active' : ''
+                              }`}
+                              type="button"
+                              onClick={() => handleLibraryToggleFavorite(entry.id)}
+                              aria-pressed={entry.favorite}
+                              aria-label="お気に入り"
+                            >
+                              <svg viewBox="0 0 24 24">
+                                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.62L12 2 9.19 8.62 2 9.24l5.46 4.73L5.82 21z" />
+                              </svg>
+                            </button>
                             <button
                               className="library-add"
                               type="button"
@@ -918,14 +1242,22 @@ function App() {
                   <div className="goal-title">Lift Targets</div>
                   <div className="goal-sub">各種目の目標重量</div>
                 </button>
-                <div className="goal-card">
+                <button
+                  className="goal-card is-button"
+                  type="button"
+                  onClick={() => setGoalsView('weight')}
+                >
                   <div className="goal-title">Body Weight</div>
                   <div className="goal-sub">体重目標</div>
-                </div>
-                <div className="goal-card">
+                </button>
+                <button
+                  className="goal-card is-button"
+                  type="button"
+                  onClick={() => setGoalsView('streak')}
+                >
                   <div className="goal-title">Streak</div>
                   <div className="goal-sub">継続目標</div>
-                </div>
+                </button>
               </div>
             )}
 
@@ -953,7 +1285,7 @@ function App() {
                       className="search-input"
                       value={liftQuery}
                       onChange={(event) => setLiftQuery(event.target.value)}
-                      placeholder="Search targets"
+                      placeholder="種目名で検索"
                     />
                   </div>
                   {liftTargets.length === 0 && (
@@ -1056,7 +1388,7 @@ function App() {
                                       <AreaChart data={maxUpdateSeries} margin={{
                                         top: 10,
                                         right: 16,
-                                        left: -8,
+                                        left: 0,
                                         bottom: 0,
                                       }}>
                                         <defs>
@@ -1097,7 +1429,7 @@ function App() {
                                           tick={{ fill: '#9aa3af', fontSize: 11 }}
                                           axisLine={false}
                                           tickLine={false}
-                                          width={36}
+                                          width={50}
                                         />
                                         <Tooltip
                                           labelFormatter={formatShortDate}
@@ -1155,6 +1487,320 @@ function App() {
                 </div>
               </div>
             )}
+
+            {goalsView === 'weight' && (
+              <div className="goal-detail">
+                <div className="goal-detail-header">
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => setGoalsView('main')}
+                  >
+                    Back
+                  </button>
+                  <div className="goal-detail-title">Body Weight</div>
+                </div>
+                <div className="goal-detail-body">
+                  <div className="weight-goal-summary">
+                    目標体重 {bodyWeightTarget || '--'} kg
+                  </div>
+                  <label className="target-edit">
+                    <span className="target-edit-label">目標体重</span>
+                    <input
+                      className="target-input"
+                      type="number"
+                      inputMode="decimal"
+                      value={bodyWeightTarget}
+                      onChange={(event) => setBodyWeightTarget(event.target.value)}
+                      placeholder="例: 68"
+                      min="0"
+                      step="0.1"
+                    />
+                  </label>
+                  {weightChartReady && (
+                    <div className="weight-chart">
+                      <div className="weight-chart-title">
+                        推移（直近20個）
+                      </div>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <AreaChart data={recentWeightRecords} margin={{
+                          top: 10,
+                          right: 16,
+                          left: 0,
+                          bottom: 0,
+                        }}>
+                          <defs>
+                            <linearGradient
+                              id="weight-chart"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="0%"
+                                stopColor="#2d9cff"
+                                stopOpacity={0.4}
+                              />
+                              <stop
+                                offset="100%"
+                                stopColor="#2d9cff"
+                                stopOpacity={0.05}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid
+                            stroke="rgba(255, 255, 255, 0.08)"
+                            vertical={false}
+                          />
+                          <XAxis
+                            dataKey="date"
+                            tickFormatter={formatShortDate}
+                            stroke="rgba(255, 255, 255, 0.4)"
+                            tick={{ fill: '#9aa3af', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <YAxis
+                            domain={[yMinWeight, yMaxWeight]}
+                            stroke="rgba(255, 255, 255, 0.4)"
+                            tick={{ fill: '#9aa3af', fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            width={50}
+                          />
+                          <Tooltip
+                            labelFormatter={formatShortDate}
+                            formatter={(value) => [`${value} kg`, '体重']}
+                            contentStyle={{
+                              background: 'rgba(12, 14, 18, 0.95)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: '12px',
+                            }}
+                            labelStyle={{ color: '#9aa3af' }}
+                          />
+                          <ReferenceLine
+                            y={targetWeightNum}
+                            stroke="#ff6b6b"
+                            strokeDasharray="6 6"
+                            label={{
+                              value: '目標',
+                              fill: '#ff6b6b',
+                              fontSize: 11,
+                              position: 'right',
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#2d9cff"
+                            strokeWidth={2}
+                            fill="url(#weight-chart)"
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  {bodyWeightRecords.length > 0 && (
+                    <div className="weight-records">
+                      <div className="weight-records-title">全記録（{bodyWeightRecords.length}個）</div>
+                      <div className="weight-record-list">
+                        {bodyWeightRecords.slice(0, 5).map((record) => (
+                          <div className="weight-record-item" key={record.id}>
+                            <span className="weight-record-date">
+                              {record.date}
+                            </span>
+                            <span className="weight-record-value">
+                              {record.value} kg
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {bodyWeightRecords.length > 5 && (
+                        <div className="weight-more-hint">
+                          他{bodyWeightRecords.length - 5}件の記録
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {goalsView === 'streak' && (
+              <div className="goal-detail">
+                <div className="goal-detail-header">
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => setGoalsView('main')}
+                  >
+                    Back
+                  </button>
+                  <div className="goal-detail-title">Streak</div>
+                </div>
+                <div className="goal-detail-body">
+                  <div className="streak-summary">
+                    <div className="streak-summary-item">
+                      <div className="streak-label">今週</div>
+                      <div className="streak-value">
+                        {weeklyWorkoutCount} / {streakGoal.weeklyTarget || '--'}
+                      </div>
+                    </div>
+                    <div className="streak-summary-item">
+                      <div className="streak-label">今月</div>
+                      <div className="streak-value">
+                        {monthlyWorkoutCount} / {streakGoal.monthlyTarget || '--'}
+                      </div>
+                    </div>
+                  </div>
+                  <label className="target-edit">
+                    <span className="target-edit-label">週何回</span>
+                    <input
+                      className="target-input"
+                      type="number"
+                      inputMode="numeric"
+                      value={streakGoal.weeklyTarget}
+                      onChange={(event) =>
+                        setStreakGoal((prev) => ({
+                          ...prev,
+                          weeklyTarget: event.target.value,
+                        }))
+                      }
+                      placeholder="例: 3"
+                      min="0"
+                    />
+                  </label>
+                  <label className="target-edit">
+                    <span className="target-edit-label">月何回</span>
+                    <input
+                      className="target-input"
+                      type="number"
+                      inputMode="numeric"
+                      value={streakGoal.monthlyTarget}
+                      onChange={(event) =>
+                        setStreakGoal((prev) => ({
+                          ...prev,
+                          monthlyTarget: event.target.value,
+                        }))
+                      }
+                      placeholder="例: 12"
+                      min="0"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+          </section>
+        </main>
+      )}
+
+      {activeTab === 'history' && (
+        <main className="content">
+          <section className="section history">
+            <div className="section-header">
+              <h2>History</h2>
+              <div className="section-meta">今月の記録</div>
+            </div>
+            <div className="history-card">
+              <div className="history-summary">
+                <div className="history-summary-label">今月</div>
+                <div className="history-summary-value">
+                  {monthlyWorkoutCount} 回
+                </div>
+              </div>
+              <div className="history-calendar-header">
+                <button
+                  className="icon-button ghost"
+                  type="button"
+                  onClick={handleHistoryPrevMonth}
+                  aria-label="Previous month"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                </button>
+                <div className="history-month">
+                  {historyYear}年{historyMonth + 1}月
+                </div>
+                <button
+                  className="icon-button ghost"
+                  type="button"
+                  onClick={handleHistoryNextMonth}
+                  aria-label="Next month"
+                >
+                  <svg viewBox="0 0 24 24">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+              <div className="history-weekdays">
+                {weekDaysShort.map((label) => (
+                  <span key={label}>{label}</span>
+                ))}
+              </div>
+              <div className="history-grid">
+                {calendarDays.map((day, index) => {
+                  if (!day) {
+                    return (
+                      <div className="history-cell is-empty" key={`empty-${index}`} />
+                    )
+                  }
+                  const dateKey = formatDateKey(historyYear, historyMonth, day)
+                  const hasWorkouts = recordsByDate.has(dateKey)
+                  const isSelected = historyDate === dateKey
+                  const isToday = dateKey === getTodayKey()
+
+                  return (
+                    <button
+                      className={`history-day${
+                        hasWorkouts ? ' has-workout' : ''
+                      }${isSelected ? ' is-selected' : ''}${
+                        isToday ? ' is-today' : ''
+                      }`}
+                      type="button"
+                      key={dateKey}
+                      onClick={() => setHistoryDate(dateKey)}
+                      aria-pressed={isSelected}
+                      aria-label={`Select ${dateKey}`}
+                    >
+                      <span className="history-day-number">{day}</span>
+                      {hasWorkouts && (
+                        <span className="history-dot" aria-hidden="true" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="history-records">
+              <div className="history-records-header">
+                {formatHistoryDate(historyDate)}
+              </div>
+              {selectedHistoryRecords.length === 0 && (
+                <div className="empty-state">この日の記録はありません</div>
+              )}
+              {selectedHistoryRecords.length > 0 && (
+                <div className="history-record-list">
+                  {selectedHistoryRecords.map((record) => (
+                    <div className="history-record-item" key={record.id}>
+                      <div className="history-record-title">{record.type}</div>
+                      <div className="history-record-meta">
+                        {record.weight} kg
+                        {record.memo ? ` · ${record.memo}` : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="history-notice">
+              <div className="history-notice-title">データの取り扱い</div>
+              <p>
+                このアプリの記録は端末内（ローカルストレージ）に保存されます。
+                サーバーには送信されません。ブラウザのデータを削除すると記録も消えます。
+              </p>
+            </div>
           </section>
         </main>
       )}
@@ -1296,8 +1942,121 @@ function App() {
                 required
               />
             </label>
+            <label className="field">
+              <span className="field-label">メモ</span>
+              <input
+                className="field-input"
+                value={recordMemo}
+                onChange={(event) => setRecordMemo(event.target.value)}
+                placeholder="例: フォーム良かった"
+              />
+            </label>
             <div className="record-actions">
               <button className="ghost-button" type="button" onClick={handleRecordClose}>
+                Cancel
+              </button>
+              <button className="solid-button" type="submit">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isWeightRecordOpen && (
+        <div className="record-modal" role="dialog" aria-modal="true">
+          <div className="record-backdrop" onClick={handleWeightRecordClose} />
+          <form className="record-card" onSubmit={handleWeightRecordSubmit}>
+            <div className="record-header">
+              <div>
+                <div className="record-title">体重を記録</div>
+              </div>
+              <button
+                className="icon-button ghost"
+                type="button"
+                onClick={handleWeightRecordClose}
+                aria-label="Close"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M6 6l12 12M18 6l-12 12" />
+                </svg>
+              </button>
+            </div>
+            <label className="field">
+              <span className="field-label">日付</span>
+              <input
+                className="field-input"
+                type="date"
+                value={weightRecordDate}
+                onChange={(event) => setWeightRecordDate(event.target.value)}
+                required
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">体重 (kg)</span>
+              <input
+                className="field-input"
+                type="number"
+                inputMode="decimal"
+                value={weightRecordValue}
+                onChange={(event) => setWeightRecordValue(event.target.value)}
+                placeholder="例: 70.5"
+                min="0"
+                step="0.1"
+                required
+              />
+            </label>
+            <div className="record-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={handleWeightRecordClose}
+              >
+                Cancel
+              </button>
+              <button className="solid-button" type="submit">
+                Save
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isNextScheduleOpen && (
+        <div className="record-modal" role="dialog" aria-modal="true">
+          <div className="record-backdrop" onClick={handleNextScheduleClose} />
+          <form className="record-card" onSubmit={handleNextScheduleSubmit}>
+            <div className="record-header">
+              <div>
+                <div className="record-title">次回日程を設定</div>
+              </div>
+              <button
+                className="icon-button ghost"
+                type="button"
+                onClick={handleNextScheduleClose}
+                aria-label="Close"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M6 6l12 12M18 6l-12 12" />
+                </svg>
+              </button>
+            </div>
+            <label className="field">
+              <span className="field-label">日付</span>
+              <input
+                className="field-input"
+                type="date"
+                value={nextScheduleDate}
+                onChange={(event) => setNextScheduleDate(event.target.value)}
+                required
+              />
+            </label>
+            <div className="record-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={handleNextScheduleClose}
+              >
                 Cancel
               </button>
               <button className="solid-button" type="submit">
@@ -1385,7 +2144,11 @@ function App() {
           </span>
           Goals
         </button>
-        <button className="nav-item" type="button">
+        <button
+          className={`nav-item ${activeTab === 'history' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActiveTab('history')}
+        >
           <span className="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24">
               <path d="M6 4h12a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
