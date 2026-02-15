@@ -1060,9 +1060,6 @@ function App() {
               <h2>Exercise Library</h2>
               <div className="section-meta">部位ごとに整理</div>
             </div>
-            <div className="library-hint">
-              プラスボタンを押してToday Planに追加
-            </div>
             <div className="library-search">
               <span className="search-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24">
@@ -1078,6 +1075,9 @@ function App() {
               />
             </div>
             <form className="library-form" onSubmit={handleLibrarySubmit}>
+              <div className="library-form-hint">
+                種目と体の部分を設定してAddボタンで追加する
+              </div>
               <label className="field">
                 <span className="field-label">Workout</span>
                 <input
@@ -1111,6 +1111,9 @@ function App() {
               </div>
             </form>
 
+            <div className="library-hint">
+              プラスボタンを押してToday Planに追加
+            </div>
             <div className="library-filters">
               <button
                 className={`ghost-button ${showFavoritesOnly ? 'is-active' : ''}`}
