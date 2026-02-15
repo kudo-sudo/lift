@@ -32,29 +32,15 @@ const getHeroDateLabel = () => {
   }）`
 }
 
-const initialPlan = [
-  {
-    id: 'bench',
-    title: 'Bench Press',
-    meta: 'Drop set · 4 stages',
-    sets: [
-      { id: 'bench-1', title: 'Set 1', meta: '70kg · 6 reps' },
-      { id: 'bench-2', title: 'Set 2', meta: '62.5kg · 6 reps' },
-      { id: 'bench-3', title: 'Set 3', meta: '55kg · 8 reps' },
-      { id: 'bench-4', title: 'Set 4', meta: '50kg · 10 reps' },
-    ],
-  },
-]
+const initialPlan = []
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [planItems, setPlanItems] = useState(initialPlan)
   const [exerciseLibrary, setExerciseLibrary] = useState([])
-  const [doneItems, setDoneItems] = useState(['warmup'])
-  const [expandedItems, setExpandedItems] = useState(['bench'])
-  const [setChecks, setSetChecks] = useState({
-    bench: [false, false, false, false],
-  })
+  const [doneItems, setDoneItems] = useState([])
+  const [expandedItems, setExpandedItems] = useState([])
+  const [setChecks, setSetChecks] = useState({})
   const [workoutRecords, setWorkoutRecords] = useState({})
   const [planDate, setPlanDate] = useState(getTodayKey())
   const [isHydrated, setIsHydrated] = useState(false)
@@ -85,6 +71,7 @@ function App() {
     weeklyTarget: '',
     monthlyTarget: '',
   })
+  const [recordExercise, setRecordExercise] = useState('')
   const [recordDate, setRecordDate] = useState('')
   const [recordWeight, setRecordWeight] = useState('')
   const [recordMemo, setRecordMemo] = useState('')
