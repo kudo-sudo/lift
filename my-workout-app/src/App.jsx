@@ -16,6 +16,7 @@ import useLibrary from './hooks/useLibrary'
 import usePlan from './hooks/usePlan'
 import useRecords from './hooks/useRecords'
 import useSchedule from './hooks/useSchedule'
+import useTrainer from './hooks/useTrainer'
 import FooterNav from './components/FooterNav'
 import {
   formatDateKey,
@@ -97,6 +98,10 @@ function App() {
     setRecordDate,
     recordWeight,
     setRecordWeight,
+    recordReps,
+    setRecordReps,
+    recordSets,
+    setRecordSets,
     recordMemo,
     setRecordMemo,
     historyDate,
@@ -160,6 +165,11 @@ function App() {
     handleLiftTargetToggle,
     getMaxUpdateRecords,
   } = useGoals({ planItems, exerciseLibrary })
+
+  const { suggestedExercises } = useTrainer({
+    workoutRecords,
+    planItems,
+  })
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey)
@@ -517,6 +527,7 @@ function App() {
             nextScheduleDate={nextScheduleDate}
             formatHistoryDate={formatHistoryDate}
             handleNextScheduleOpen={handleNextScheduleOpen}
+            suggestedExercises={suggestedExercises}
           />
         </main>
       )}
@@ -620,6 +631,10 @@ function App() {
           setRecordDate={setRecordDate}
           recordWeight={recordWeight}
           setRecordWeight={setRecordWeight}
+          recordReps={recordReps}
+          setRecordReps={setRecordReps}
+          recordSets={recordSets}
+          setRecordSets={setRecordSets}
           recordMemo={recordMemo}
           setRecordMemo={setRecordMemo}
           handleRecordSubmit={handleRecordSubmit}

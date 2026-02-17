@@ -1,0 +1,160 @@
+/* TrainerPanel Styles */
+
+.trainer-panel {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.trainer-header {
+  margin-bottom: 1.5rem;
+}
+
+.trainer-header h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.trainer-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.trainer-suggestions {
+  display: grid;
+  gap: 1rem;
+}
+
+.suggestion-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.suggestion-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.suggestion-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.suggestion-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.3);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.suggestion-content {
+  margin-bottom: 0.75rem;
+}
+
+.suggestion-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.suggestion-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.suggestion-item.highlight {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.suggestion-label {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.suggestion-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.suggestion-reps {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-left: 0.5rem;
+}
+
+.suggestion-arrow {
+  font-size: 1.2rem;
+  opacity: 0.8;
+}
+
+.suggestion-reasoning {
+  margin: 0;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-left: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.suggestion-footer {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.suggestion-time {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* レスポンシブ */
+@media (max-width: 600px) {
+  .trainer-panel {
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .suggestion-card {
+    padding: 0.75rem;
+  }
+
+  .suggestion-row {
+    gap: 0.75rem;
+  }
+
+  .suggestion-value {
+    font-size: 1rem;
+  }
+
+  .suggestion-reasoning {
+    font-size: 0.85rem;
+  }
+}

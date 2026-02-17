@@ -4,6 +4,10 @@ const RecordModal = ({
   setRecordDate,
   recordWeight,
   setRecordWeight,
+  recordReps,
+  setRecordReps,
+  recordSets,
+  setRecordSets,
   recordMemo,
   setRecordMemo,
   handleRecordSubmit,
@@ -50,6 +54,32 @@ const RecordModal = ({
           min="0"
           step="0.5"
           required
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Reps (回数)</span>
+        <input
+          className="field-input"
+          type="number"
+          inputMode="numeric"
+          value={recordReps}
+          onChange={(event) => setRecordReps(event.target.value)}
+          placeholder="例: 8"
+          min="0"
+          step="1"
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">Sets (セット)</span>
+        <input
+          className="field-input"
+          type="number"
+          inputMode="numeric"
+          value={recordSets}
+          onChange={(event) => setRecordSets(event.target.value)}
+          placeholder="例: 3"
+          min="0"
+          step="1"
         />
       </label>
       <label className="field">

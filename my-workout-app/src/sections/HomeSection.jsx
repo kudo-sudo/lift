@@ -1,3 +1,5 @@
+import TrainerPanel from '../components/TrainerPanel'
+
 const HomeSection = ({
   planItems,
   doneItems,
@@ -16,6 +18,7 @@ const HomeSection = ({
   nextScheduleDate,
   formatHistoryDate,
   handleNextScheduleOpen,
+  suggestedExercises,
 }) => (
   <>
     <section className="section">
@@ -158,6 +161,8 @@ const HomeSection = ({
         })}
       </ul>
     </section>
+
+    <TrainerPanel suggestedExercises={suggestedExercises} />
 
     <section className="section stats">
       <button className="stat-card" type="button" onClick={handleWeightRecordOpen}>

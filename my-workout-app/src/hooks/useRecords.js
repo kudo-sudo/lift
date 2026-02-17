@@ -7,6 +7,8 @@ const useRecords = () => {
   const [recordExercise, setRecordExercise] = useState('')
   const [recordDate, setRecordDate] = useState('')
   const [recordWeight, setRecordWeight] = useState('')
+  const [recordReps, setRecordReps] = useState('')
+  const [recordSets, setRecordSets] = useState('')
   const [recordMemo, setRecordMemo] = useState('')
   const [historyDate, setHistoryDate] = useState(getTodayKey())
   const [historyMonth, setHistoryMonth] = useState(new Date().getMonth())
@@ -24,6 +26,8 @@ const useRecords = () => {
     setRecordExercise(item.title)
     setRecordDate(today)
     setRecordWeight('')
+    setRecordReps('')
+    setRecordSets('')
     setRecordMemo('')
     setIsRecordOpen(true)
   }
@@ -33,6 +37,8 @@ const useRecords = () => {
     setRecordExercise('')
     setRecordDate('')
     setRecordWeight('')
+    setRecordReps('')
+    setRecordSets('')
     setRecordMemo('')
   }
 
@@ -44,6 +50,8 @@ const useRecords = () => {
       date: recordDate,
       type: recordExercise,
       weight: recordWeight,
+      reps: recordReps ? parseInt(recordReps) : null,
+      sets: recordSets ? parseInt(recordSets) : null,
       memo: recordMemo.trim(),
     }
     setWorkoutRecords((prev) => {
@@ -64,6 +72,8 @@ const useRecords = () => {
           date: record.date,
           type: record.type || exercise,
           weight: record.weight,
+          reps: record.reps || null,
+          sets: record.sets || null,
           memo: record.memo || '',
         })
         map.set(record.date, list)
@@ -154,6 +164,10 @@ const useRecords = () => {
     setRecordDate,
     recordWeight,
     setRecordWeight,
+    recordReps,
+    setRecordReps,
+    recordSets,
+    setRecordSets,
     recordMemo,
     setRecordMemo,
     historyDate,
