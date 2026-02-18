@@ -5,6 +5,8 @@ const AddModal = ({
   setDraftMeta,
   draftSets,
   handleSetChange,
+  handleDuplicateCountChange,
+  handleDuplicateCountApply,
   handleRemoveSetRow,
   handleAddSetRow,
   handleAddSubmit,
@@ -65,6 +67,26 @@ const AddModal = ({
                 value={row.reps}
                 onChange={(event) => handleSetChange(row.id, 'reps', event.target.value)}
                 placeholder="Reps (例: 6)"
+              />
+              <input
+                className="field-input compact"
+                type="number"
+                inputMode="numeric"
+                value={row.copyCount || ''}
+                onChange={(event) =>
+                  handleDuplicateCountChange(row.id, event.target.value)
+                }
+                onBlur={() => handleDuplicateCountApply(row.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    handleDuplicateCountApply(row.id)
+                  }
+                }}
+                placeholder="複製数"
+                min="1"
+                max="10"
+                aria-label="Duplicate set count"
               />
               <button
                 className="row-delete"

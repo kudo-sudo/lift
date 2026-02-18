@@ -76,7 +76,7 @@ const usePlan = (initialPlan = emptyArray) => {
   const handleAddSetRow = () => {
     setDraftSets((prev) => [
       ...prev,
-      { id: `draft-${Date.now()}-${prev.length}`, weight: '', reps: '' },
+      { id: `draft-${Date.now()}-${prev.length}`, weight: '', reps: '', copyCount: '' },
     ])
   }
 
@@ -88,6 +88,32 @@ const usePlan = (initialPlan = emptyArray) => {
     setDraftSets((prev) =>
       prev.map((row) => (row.id === rowId ? { ...row, [field]: value } : row))
     )
+  }
+
+  const handleDuplicateCountChange = (rowId, value) => {
+    setDraftSets((prev) =>
+      prev.map((row) => (row.id === rowId ? { ...row, copyCount: value } : row))
+    )
+  }
+
+  const handleDuplicateCountApply = (rowId) => {
+    setDraftSets((prev) => {
+      const index = prev.findIndex((row) => row.id === rowId)
+      if (index === -1) return prev
+
+      const target = prev[index]
+      const count = parseInt(target.copyCount)
+      if (isNaN(count) || count < 1) return prev
+
+      const copies = Array.from({ length: count }, (_, copyIndex) => ({
+        id: `draft-${Date.now()}-${index}-${copyIndex}`,
+        weight: target.weight,
+        reps: target.reps,
+        copyCount: '',
+      }))
+
+      return [...prev.slice(0, index), ...copies, ...prev.slice(index + 1)]
+    })
   }
 
   const handleAddSubmit = (event) => {
@@ -140,6 +166,8 @@ const usePlan = (initialPlan = emptyArray) => {
     setDraftMeta,
     draftSets,
     setDraftSets,
+    handleDuplicateCountChange,
+    handleDuplicateCountApply,
     toggleItem,
     toggleExpand,
     toggleSet,

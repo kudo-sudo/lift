@@ -57,6 +57,7 @@ function App() {
     setDraftMeta,
     draftSets,
     setDraftSets,
+    handleDuplicateCountChange,
     toggleItem,
     toggleExpand,
     toggleSet,
@@ -67,6 +68,7 @@ function App() {
     handleAddSetRow,
     handleRemoveSetRow,
     handleSetChange,
+    handleDuplicateCountApply,
     handleAddSubmit,
   } = usePlan(initialPlan)
 
@@ -617,6 +619,8 @@ function App() {
           setDraftMeta={setDraftMeta}
           draftSets={draftSets}
           handleSetChange={handleSetChange}
+          handleDuplicateCountChange={handleDuplicateCountChange}
+          handleDuplicateCountApply={handleDuplicateCountApply}
           handleRemoveSetRow={handleRemoveSetRow}
           handleAddSetRow={handleAddSetRow}
           handleAddSubmit={handleAddSubmit}
