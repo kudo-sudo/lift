@@ -70,6 +70,7 @@ function App() {
     handleSetChange,
     handleDuplicateCountApply,
     handleAddSubmit,
+    handleAcceptAISuggestion,
   } = usePlan(initialPlan)
 
   const {
@@ -165,10 +166,10 @@ function App() {
     filteredLiftTargets,
     handleLiftTargetChange,
     handleLiftTargetToggle,
-    getMaxUpdateRecords,
+    getWeightRecords,
   } = useGoals({ planItems, exerciseLibrary })
 
-  const { suggestedExercises } = useTrainer({
+  const { suggestedExercises, isLoadingAI } = useTrainer({
     workoutRecords,
     planItems,
   })
@@ -530,6 +531,8 @@ function App() {
             formatHistoryDate={formatHistoryDate}
             handleNextScheduleOpen={handleNextScheduleOpen}
             suggestedExercises={suggestedExercises}
+            isLoadingAI={isLoadingAI}
+            onAcceptAISuggestion={handleAcceptAISuggestion}
           />
         </main>
       )}
@@ -571,7 +574,7 @@ function App() {
             handleLiftTargetChange={handleLiftTargetChange}
             expandedLiftTargets={expandedLiftTargets}
             handleLiftTargetToggle={handleLiftTargetToggle}
-            getMaxUpdateRecords={getMaxUpdateRecords}
+            getWeightRecords={getWeightRecords}
             workoutRecords={workoutRecords}
             bodyWeightTarget={bodyWeightTarget}
             setBodyWeightTarget={setBodyWeightTarget}

@@ -19,6 +19,8 @@ const HomeSection = ({
   formatHistoryDate,
   handleNextScheduleOpen,
   suggestedExercises,
+  isLoadingAI,
+  onAcceptAISuggestion,
 }) => (
   <>
     <section className="section">
@@ -162,7 +164,11 @@ const HomeSection = ({
       </ul>
     </section>
 
-    <TrainerPanel suggestedExercises={suggestedExercises} />
+    <TrainerPanel 
+      suggestedExercises={suggestedExercises} 
+      isLoadingAI={isLoadingAI}
+      onAcceptSuggestion={onAcceptAISuggestion}
+    />
 
     <section className="section stats">
       <button className="stat-card" type="button" onClick={handleWeightRecordOpen}>

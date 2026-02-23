@@ -1,6 +1,21 @@
 import './styles/TrainerPanel.css'
 
-const TrainerPanel = ({ suggestedExercises }) => {
+const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion }) => {
+  if (isLoadingAI) {
+    return (
+      <section className="trainer-panel">
+        <div className="trainer-header">
+          <h3>🏋️ AI Trainer</h3>
+          <p className="trainer-subtitle">AI が提案を生成中...</p>
+        </div>
+        <div className="trainer-loading">
+          <div className="spinner"></div>
+          <p>トレーニング分析中...</p>
+        </div>
+      </section>
+    )
+  }
+
   if (!suggestedExercises || suggestedExercises.length === 0) {
     return null
   }
@@ -57,6 +72,14 @@ const TrainerPanel = ({ suggestedExercises }) => {
                 <span className="suggestion-time">
                   💡 AI生成
                 </span>
+                <button
+                  className="accept-button"
+                  type="button"
+                  onClick={() => onAcceptSuggestion?.(suggestion)}
+                  aria-label="Accept AI suggestion"
+                >
+                  Add to Plan
+                </button>
               </div>
             </div>
           )

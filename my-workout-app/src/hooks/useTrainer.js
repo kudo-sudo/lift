@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 const useTrainer = ({ workoutRecords, planItems }) => {
-  // 種目ごとの最新記録と提案を計算
-  const trainerSuggestions = useMemo(() => {
+  const [aiSuggestions, setAiSuggestions] = useState({})
+  const [isLoadingAI, setIsLoadingAI] = useState(false)
+  const [useAI, setUseAI] = useState(true) // AI を使うかどうかのフラグ
+
+  // ルールベースの計算（フォールバック用）
+  const ruleSuggestions = useMemo(() => {
     const suggestions = {}
 
     planItems?.forEach((item) => {
@@ -79,6 +83,61 @@ const useTrainer = ({ workoutRecords, planItems }) => {
     return suggestions
   }, [workoutRecords, planItems])
 
+  // AI による提案を取得
+  useEffect(() => {
+    if (!useAI || !planItems || planItems.length === 0) return
+
+    const fetchAISuggestions = async () => {
+      setIsLoadingAI(true)
+      const newSuggestions = {}
+
+      for (const item of planItems) {
+        const exerciseName = item.title
+        const records = workoutRecords[exerciseName] || []
+
+        if (records.length === 0) continue
+
+        try {
+          const response = await fetch('/api/trainer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              records: records.slice(0, 5),
+              exerciseName,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success) {
+              newSuggestions[exerciseName] = {
+                ...data.suggestion,
+                lastWeight: records[0]?.weight,
+                lastReps: records[0]?.reps,
+                lastSets: records[0]?.sets,
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`AI suggestion failed for ${exerciseName}:`, error)
+        }
+      }
+
+      setAiSuggestions(newSuggestions)
+      setIsLoadingAI(false)
+    }
+
+    fetchAISuggestions()
+  }, [workoutRecords, planItems, useAI])
+
+  // AI または ルールベースの提案を返す
+  const trainerSuggestions = useMemo(() => {
+    if (useAI && Object.keys(aiSuggestions).length > 0) {
+      return aiSuggestions
+    }
+    return ruleSuggestions
+  }, [useAI, aiSuggestions, ruleSuggestions])
+
   // 特定の種目の提案を取得
   const getTrainerSuggestion = (exerciseName) => {
     return trainerSuggestions[exerciseName] || null
@@ -98,6 +157,9 @@ const useTrainer = ({ workoutRecords, planItems }) => {
     trainerSuggestions,
     getTrainerSuggestion,
     suggestedExercises,
+    isLoadingAI,
+    useAI,
+    setUseAI,
   }
 }
 

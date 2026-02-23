@@ -147,6 +147,42 @@ const usePlan = (initialPlan = emptyArray) => {
     handleAddClose()
   }
 
+  const handleAcceptAISuggestion = (suggestion) => {
+    if (!suggestion) return
+
+    const { exerciseName, nextWeight, nextReps, nextSets } = suggestion
+
+    // AI提案からsetを作成（単一セット、複製は不要）
+    const sets = []
+    for (let i = 0; i < nextSets; i++) {
+      sets.push({
+        id: `set-${Date.now()}-${i}`,
+        title: `Set ${i + 1}`,
+        meta: `${nextWeight}kg · ${nextReps}reps`,
+      })
+    }
+
+    const id = `ai-${Date.now()}`
+    const meta = `${nextWeight}kg · ${nextReps}reps × ${nextSets}sets`
+
+    setPlanItems((prev) => [
+      ...prev,
+      {
+        id,
+        title: exerciseName,
+        meta,
+        sets,
+      },
+    ])
+
+    if (sets.length) {
+      setSetChecks((prev) => ({
+        ...prev,
+        [id]: sets.map(() => false),
+      }))
+    }
+  }
+
   return {
     planItems,
     setPlanItems,
@@ -179,6 +215,7 @@ const usePlan = (initialPlan = emptyArray) => {
     handleRemoveSetRow,
     handleSetChange,
     handleAddSubmit,
+    handleAcceptAISuggestion,
   }
 }
 

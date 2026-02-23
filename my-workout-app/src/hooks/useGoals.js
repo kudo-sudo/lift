@@ -45,21 +45,16 @@ const useGoals = ({ planItems, exerciseLibrary }) => {
     }))
   }
 
-  const getMaxUpdateRecords = (records, limit) => {
-    const updates = []
-    let max = -Infinity
-    const ordered = [...records].reverse()
-    ordered.forEach((record) => {
-      const value = Number.parseFloat(record.weight)
-      if (Number.isFinite(value) && value > max) {
-        max = value
-        updates.push(record)
-      }
-    })
+  const getWeightRecords = (records, limit) => {
+    const normalized = records.filter((record) =>
+      Number.isFinite(Number.parseFloat(record.weight))
+    )
+
     if (limit) {
-      return updates.slice(-limit).reverse()
+      return normalized.slice(0, limit)
     }
-    return updates
+
+    return normalized
   }
 
   return {
@@ -77,7 +72,7 @@ const useGoals = ({ planItems, exerciseLibrary }) => {
     filteredLiftTargets,
     handleLiftTargetChange,
     handleLiftTargetToggle,
-    getMaxUpdateRecords,
+    getWeightRecords,
   }
 }
 

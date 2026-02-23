@@ -20,7 +20,7 @@ const GoalsSection = ({
   handleLiftTargetChange,
   expandedLiftTargets,
   handleLiftTargetToggle,
-  getMaxUpdateRecords,
+  getWeightRecords,
   workoutRecords,
   bodyWeightTarget,
   setBodyWeightTarget,
@@ -90,8 +90,11 @@ const GoalsSection = ({
             <ul className="target-list">
               {filteredLiftTargets.map((target, targetIndex) => {
                 const records = workoutRecords[target.name] || []
-                const maxUpdateRecords = getMaxUpdateRecords(records, 5)
-                const maxUpdateSeries = getMaxUpdateRecords(records)
+                const weightRecords = getWeightRecords(records)
+                const visibleWeightRecords = getWeightRecords(records, 20)
+                const hiddenRecordCount = Math.max(weightRecords.length - visibleWeightRecords.length, 0)
+                const trendSeries = [...visibleWeightRecords]
+                  .reverse()
                   .map((record) => ({
                     date: record.date,
                     weight: Number.parseFloat(record.weight),
@@ -107,10 +110,10 @@ const GoalsSection = ({
                     )
                   : null
                 const showTargetChart =
-                  Number.isFinite(targetWeight) && maxUpdateSeries.length > 0
+                  Number.isFinite(targetWeight) && trendSeries.length > 0
                 const chartId = `lift-target-${targetIndex}`
                 const minSeriesWeight = showTargetChart
-                  ? Math.min(...maxUpdateSeries.map((entry) => entry.weight))
+                  ? Math.min(...trendSeries.map((entry) => entry.weight))
                   : 0
                 const minBuffer = showTargetChart
                   ? Math.max(2, minSeriesWeight * 0.05)
@@ -164,13 +167,13 @@ const GoalsSection = ({
                         </label>
                         {showTargetChart && (
                           <div className="target-chart">
-                            <div className="target-chart-title">Max Update</div>
+                            <div className="target-chart-title">Weight Trend（最新20件）</div>
                             <ResponsiveContainer width="100%" height={180}>
                               <AreaChart
-                                data={maxUpdateSeries}
+                                data={trendSeries}
                                 margin={{
                                   top: 10,
-                                  right: 16,
+                                  right: 20,
                                   left: 0,
                                   bottom: 0,
                                 }}
@@ -200,7 +203,7 @@ const GoalsSection = ({
                                 />
                                 <Tooltip
                                   labelFormatter={formatShortDate}
-                                  formatter={(value) => [`${value} kg`, 'MAX']}
+                                  formatter={(value) => [`${value} kg`, '重量']}
                                   contentStyle={{
                                     background: 'rgba(12, 14, 18, 0.95)',
                                     border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -216,7 +219,7 @@ const GoalsSection = ({
                                     value: '目標ライン',
                                     fill: '#ff6b6b',
                                     fontSize: 11,
-                                    position: 'right',
+                                    position: 'insideTopRight',
                                   }}
                                 />
                                 <Area
@@ -230,14 +233,19 @@ const GoalsSection = ({
                             </ResponsiveContainer>
                           </div>
                         )}
-                        {maxUpdateRecords.length > 0 && (
+                        {visibleWeightRecords.length > 0 && (
                           <div className="target-records">
-                            {maxUpdateRecords.map((record) => (
+                            {visibleWeightRecords.map((record) => (
                               <div className="target-record" key={record.id}>
                                 <span className="target-record-date">{record.date}</span>
                                 <span className="target-record-weight">{record.weight} kg</span>
                               </div>
                             ))}
+                            {hiddenRecordCount > 0 && (
+                              <div className="weight-more-hint">
+                                他{hiddenRecordCount}件はサブスクで表示
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -328,7 +336,7 @@ const GoalsSection = ({
                       value: '目標',
                       fill: '#ff6b6b',
                       fontSize: 11,
-                      position: 'right',
+                      position: 'insideTopRight',
                     }}
                   />
                   <Area
