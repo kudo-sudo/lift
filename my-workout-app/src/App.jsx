@@ -587,6 +587,14 @@ function App() {
             isLoadingAI={isLoadingAI}
             onAcceptAISuggestion={handleAcceptAISuggestionWithNotice}
             getTodayKey={getTodayKey}
+            aiSupportTargets={aiSupportTargets}
+            workoutRecords={workoutRecords}
+            onSaveRecord={(exerciseName, record) => {
+              setWorkoutRecords((prev) => ({
+                ...prev,
+                [exerciseName]: [record, ...(prev[exerciseName] || [])],
+              }))
+            }}
           />
         </main>
       )}
