@@ -5,6 +5,7 @@ const useGoals = ({ planItems, exerciseLibrary }) => {
   const [liftQuery, setLiftQuery] = useState('')
   const [liftTargetWeights, setLiftTargetWeights] = useState({})
   const [expandedLiftTargets, setExpandedLiftTargets] = useState({})
+  const [aiSupportTargets, setAiSupportTargets] = useState({})
   const [streakGoal, setStreakGoal] = useState({
     weeklyTarget: '',
     monthlyTarget: '',
@@ -45,6 +46,13 @@ const useGoals = ({ planItems, exerciseLibrary }) => {
     }))
   }
 
+  const handleAiSupportToggle = (name) => {
+    setAiSupportTargets((prev) => ({
+      ...prev,
+      [name]: !(prev[name] ?? false),
+    }))
+  }
+
   const getWeightRecords = (records, limit) => {
     const normalized = records.filter((record) =>
       Number.isFinite(Number.parseFloat(record.weight))
@@ -66,12 +74,15 @@ const useGoals = ({ planItems, exerciseLibrary }) => {
     setLiftTargetWeights,
     expandedLiftTargets,
     setExpandedLiftTargets,
+    aiSupportTargets,
+    setAiSupportTargets,
     streakGoal,
     setStreakGoal,
     liftTargets,
     filteredLiftTargets,
     handleLiftTargetChange,
     handleLiftTargetToggle,
+    handleAiSupportToggle,
     getWeightRecords,
   }
 }

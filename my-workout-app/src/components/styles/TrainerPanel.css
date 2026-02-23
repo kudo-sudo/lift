@@ -124,6 +124,55 @@
   border-left: 3px solid rgba(255, 255, 255, 0.3);
 }
 
+.suggestion-message {
+  margin-top: 0.6rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.suggestion-message-line {
+  padding-left: 0.6rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.35);
+}
+
+.suggestion-sets {
+  margin-top: 0.6rem;
+  padding: 0.6rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.suggestion-sets-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.3rem;
+}
+
+.suggestion-sets-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.suggestion-sets-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.set-title {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  min-width: 70px;
+}
+
 .suggestion-footer {
   display: flex;
   justify-content: space-between;
@@ -148,6 +197,20 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+}
+
+.accept-date-input {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.accept-date-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 .accept-button:hover {

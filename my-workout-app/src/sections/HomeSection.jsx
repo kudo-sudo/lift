@@ -5,6 +5,8 @@ const HomeSection = ({
   doneItems,
   expandedItems,
   setChecks,
+  planDate,
+  setPlanDate,
   toggleItem,
   toggleExpand,
   toggleSet,
@@ -21,11 +23,12 @@ const HomeSection = ({
   suggestedExercises,
   isLoadingAI,
   onAcceptAISuggestion,
+  getTodayKey,
 }) => (
   <>
     <section className="section">
       <div className="section-header">
-        <h2>Today Plan</h2>
+        <h2>Menu</h2>
         <div className="section-actions">
           <button
             className="icon-button"
@@ -42,9 +45,24 @@ const HomeSection = ({
           </button>
         </div>
       </div>
+      <div className="home-date-row">
+        <input
+          className="home-date-input"
+          type="date"
+          value={planDate}
+          onChange={(event) => setPlanDate(event.target.value)}
+        />
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => setPlanDate(getTodayKey())}
+        >
+          Today
+        </button>
+      </div>
       {planItems.length === 0 && (
         <div className="empty-state">
-          <div className="empty-title">今日のメニューがありません</div>
+          <div className="empty-title">この日のメニューがありません</div>
           <button className="solid-button" type="button" onClick={() => setActiveTab('add')}>
             Addタブから追加
           </button>
@@ -168,6 +186,7 @@ const HomeSection = ({
       suggestedExercises={suggestedExercises} 
       isLoadingAI={isLoadingAI}
       onAcceptSuggestion={onAcceptAISuggestion}
+      planDate={planDate}
     />
 
     <section className="section stats">

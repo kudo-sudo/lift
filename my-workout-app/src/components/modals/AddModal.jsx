@@ -1,4 +1,5 @@
 const AddModal = ({
+  planDateLabel,
   draftTitle,
   setDraftTitle,
   draftMeta,
@@ -17,7 +18,7 @@ const AddModal = ({
     <form className="add-card" onSubmit={handleAddSubmit}>
       <div className="add-header">
         <div>
-          <div className="add-title">Today Plan</div>
+          <div className="add-title">Menu: {planDateLabel || '未選択'}</div>
           <div className="add-subtitle">新しいメニューを追加</div>
         </div>
         <button

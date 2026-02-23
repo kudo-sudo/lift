@@ -4,15 +4,55 @@ import { getTodayKey } from '../utils/date'
 const emptyArray = []
 
 const usePlan = (initialPlan = emptyArray) => {
-  const [planItems, setPlanItems] = useState(initialPlan)
-  const [doneItems, setDoneItems] = useState([])
-  const [expandedItems, setExpandedItems] = useState([])
-  const [setChecks, setSetChecks] = useState({})
+  const todayKey = getTodayKey()
+  const [planItemsByDate, setPlanItemsByDate] = useState(() =>
+    initialPlan.length > 0 ? { [todayKey]: initialPlan } : {}
+  )
+  const [doneItemsByDate, setDoneItemsByDate] = useState({})
+  const [expandedItemsByDate, setExpandedItemsByDate] = useState({})
+  const [setChecksByDate, setSetChecksByDate] = useState({})
   const [planDate, setPlanDate] = useState(getTodayKey())
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftMeta, setDraftMeta] = useState('')
   const [draftSets, setDraftSets] = useState([])
+
+  const planItems = planItemsByDate[planDate] || []
+  const doneItems = doneItemsByDate[planDate] || []
+  const expandedItems = expandedItemsByDate[planDate] || []
+  const setChecks = setChecksByDate[planDate] || {}
+
+  const updateDateArrayState = (setter, dateKey, updater, fallback) => {
+    setter((prev) => {
+      const current = prev[dateKey] ?? fallback
+      const nextValue = typeof updater === 'function' ? updater(current) : updater
+      return { ...prev, [dateKey]: nextValue }
+    })
+  }
+
+  const updateDateObjectState = (setter, dateKey, updater) => {
+    setter((prev) => {
+      const current = prev[dateKey] ?? {}
+      const nextValue = typeof updater === 'function' ? updater(current) : updater
+      return { ...prev, [dateKey]: nextValue }
+    })
+  }
+
+  const setPlanItems = (updater) => {
+    updateDateArrayState(setPlanItemsByDate, planDate, updater, [])
+  }
+
+  const setDoneItems = (updater) => {
+    updateDateArrayState(setDoneItemsByDate, planDate, updater, [])
+  }
+
+  const setExpandedItems = (updater) => {
+    updateDateArrayState(setExpandedItemsByDate, planDate, updater, [])
+  }
+
+  const setSetChecks = (updater) => {
+    updateDateObjectState(setSetChecksByDate, planDate, updater)
+  }
 
   const toggleItem = (id) => {
     setDoneItems((prev) =>
@@ -147,36 +187,66 @@ const usePlan = (initialPlan = emptyArray) => {
     handleAddClose()
   }
 
-  const handleAcceptAISuggestion = (suggestion) => {
+  const handleAcceptAISuggestion = (suggestion, targetDate = planDate) => {
     if (!suggestion) return
 
-    const { exerciseName, nextWeight, nextReps, nextSets } = suggestion
+    const dateKey = targetDate || planDate
 
-    // AI提案からsetを作成（単一セット、複製は不要）
+    const { exerciseName, nextWeight, nextReps, nextSets, planSets } = suggestion
+
+    const preparedPlanSets = Array.isArray(planSets) ? planSets : []
     const sets = []
-    for (let i = 0; i < nextSets; i++) {
-      sets.push({
-        id: `set-${Date.now()}-${i}`,
-        title: `Set ${i + 1}`,
-        meta: `${nextWeight}kg · ${nextReps}reps`,
+    let setIndex = 0
+
+    if (preparedPlanSets.length > 0) {
+      preparedPlanSets.forEach((planSet) => {
+        const weight = planSet.weight ?? nextWeight
+        const reps = planSet.reps ?? nextReps
+        const count = planSet.sets ?? 1
+        for (let i = 0; i < count; i++) {
+          sets.push({
+            id: `set-${Date.now()}-${setIndex}`,
+            title: `Set ${setIndex + 1}`,
+            meta: `${weight}kg · ${reps}reps`,
+          })
+          setIndex += 1
+        }
       })
+    } else {
+      for (let i = 0; i < nextSets; i++) {
+        sets.push({
+          id: `set-${Date.now()}-${i}`,
+          title: `Set ${i + 1}`,
+          meta: `${nextWeight}kg · ${nextReps}reps`,
+        })
+      }
     }
 
     const id = `ai-${Date.now()}`
-    const meta = `${nextWeight}kg · ${nextReps}reps × ${nextSets}sets`
+    const meta = preparedPlanSets.length > 0
+      ? preparedPlanSets
+          .map((planSet) => {
+            const weight = planSet.weight ?? nextWeight
+            const reps = planSet.reps ?? nextReps
+            const count = planSet.sets
+            return `${weight}kg×${reps}${count ? `×${count}` : ''}`
+          })
+          .join(' / ')
+      : `${nextWeight}kg · ${nextReps}reps × ${nextSets}sets`
 
-    setPlanItems((prev) => [
+    updateDateArrayState(setPlanItemsByDate, dateKey, (prev) => [
       ...prev,
       {
         id,
         title: exerciseName,
         meta,
         sets,
+        source: 'ai',
       },
-    ])
+    ], [])
 
     if (sets.length) {
-      setSetChecks((prev) => ({
+      updateDateObjectState(setSetChecksByDate, dateKey, (prev) => ({
         ...prev,
         [id]: sets.map(() => false),
       }))
@@ -186,12 +256,20 @@ const usePlan = (initialPlan = emptyArray) => {
   return {
     planItems,
     setPlanItems,
+    planItemsByDate,
+    setPlanItemsByDate,
     doneItems,
     setDoneItems,
+    doneItemsByDate,
+    setDoneItemsByDate,
     expandedItems,
     setExpandedItems,
+    expandedItemsByDate,
+    setExpandedItemsByDate,
     setChecks,
     setSetChecks,
+    setChecksByDate,
+    setSetChecksByDate,
     planDate,
     setPlanDate,
     isAddOpen,

@@ -1,6 +1,21 @@
+import { useEffect, useState } from 'react'
 import './styles/TrainerPanel.css'
 
-const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion }) => {
+const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, planDate }) => {
+  const [acceptDates, setAcceptDates] = useState({})
+
+  useEffect(() => {
+    if (!suggestedExercises || suggestedExercises.length === 0) return
+    setAcceptDates((prev) => {
+      const next = { ...prev }
+      suggestedExercises.forEach((exercise) => {
+        if (!next[exercise.id]) {
+          next[exercise.id] = planDate
+        }
+      })
+      return next
+    })
+  }, [suggestedExercises, planDate])
   if (isLoadingAI) {
     return (
       <section className="trainer-panel">
@@ -66,16 +81,61 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion }) =
                 </div>
 
                 <p className="suggestion-reasoning">{suggestion.reasoning}</p>
+                {Array.isArray(suggestion.shortMessage) && suggestion.shortMessage.length > 0 && (
+                  <div className="suggestion-message">
+                    {suggestion.shortMessage.map((line, index) => (
+                      <div key={`${exercise.id}-msg-${index}`} className="suggestion-message-line">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {Array.isArray(suggestion.planSets) && suggestion.planSets.length > 0 && (
+                  <div className="suggestion-sets">
+                    <div className="suggestion-sets-title">次回セット案</div>
+                    <ul className="suggestion-sets-list">
+                      {suggestion.planSets.map((planSet, index) => {
+                        const weight = planSet.weight ?? suggestion.nextWeight
+                        const reps = planSet.reps ?? suggestion.nextReps
+                        const sets = planSet.sets
+                        const suffix = sets && sets > 1 ? ` × ${sets}` : ''
+                        const title = planSet.title || `セット${index + 1}`
+                        return (
+                          <li key={`${exercise.id}-set-${index}`}>
+                            <span className="set-title">{title}</span> {weight}kg × {reps}{suffix}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="suggestion-footer">
                 <span className="suggestion-time">
                   💡 AI生成
                 </span>
+                <input
+                  className="accept-date-input"
+                  type="date"
+                  value={acceptDates[exercise.id] || planDate}
+                  onChange={(event) =>
+                    setAcceptDates((prev) => ({
+                      ...prev,
+                      [exercise.id]: event.target.value,
+                    }))
+                  }
+                  aria-label="Select plan date"
+                />
                 <button
                   className="accept-button"
                   type="button"
-                  onClick={() => onAcceptSuggestion?.(suggestion)}
+                  onClick={() =>
+                    onAcceptSuggestion?.(
+                      suggestion,
+                      acceptDates[exercise.id] || planDate
+                    )
+                  }
                   aria-label="Accept AI suggestion"
                 >
                   Add to Plan

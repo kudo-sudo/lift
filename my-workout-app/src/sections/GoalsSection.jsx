@@ -20,6 +20,8 @@ const GoalsSection = ({
   handleLiftTargetChange,
   expandedLiftTargets,
   handleLiftTargetToggle,
+  aiSupportTargets,
+  handleAiSupportToggle,
   getWeightRecords,
   workoutRecords,
   bodyWeightTarget,
@@ -102,6 +104,7 @@ const GoalsSection = ({
                   .filter((entry) => Number.isFinite(entry.weight))
                 const latestRecord = records[0]
                 const targetWeight = Number.parseFloat(liftTargetWeights[target.name])
+                const isAiEnabled = Boolean(aiSupportTargets?.[target.name])
                 const latestValue = Number.parseFloat(latestRecord?.weight)
                 const remaining = Number.isFinite(targetWeight)
                   ? Math.max(
@@ -165,6 +168,19 @@ const GoalsSection = ({
                             placeholder="Target (kg)"
                           />
                         </label>
+                        <div className="target-ai-support">
+                          <button
+                            className={`ghost-button ${isAiEnabled ? 'is-active' : ''}`}
+                            type="button"
+                            onClick={() => handleAiSupportToggle(target.name)}
+                            disabled={!Number.isFinite(targetWeight)}
+                          >
+                            AIサポート {isAiEnabled ? 'ON' : 'OFF'}
+                          </button>
+                          {!Number.isFinite(targetWeight) && (
+                            <span className="target-ai-hint">目標重量を設定すると有効化できます</span>
+                          )}
+                        </div>
                         {showTargetChart && (
                           <div className="target-chart">
                             <div className="target-chart-title">Weight Trend（最新20件）</div>

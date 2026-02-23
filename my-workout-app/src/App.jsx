@@ -37,17 +37,27 @@ function App() {
   const [isHydrated, setIsHydrated] = useState(false)
   const [confirmState, setConfirmState] = useState(null)
   const [undoState, setUndoState] = useState(null)
+  const [noticeState, setNoticeState] = useState(null)
   const undoTimerRef = useRef(null)
+  const noticeTimerRef = useRef(null)
 
   const {
     planItems,
     setPlanItems,
+    planItemsByDate,
+    setPlanItemsByDate,
     doneItems,
     setDoneItems,
+    doneItemsByDate,
+    setDoneItemsByDate,
     expandedItems,
     setExpandedItems,
+    expandedItemsByDate,
+    setExpandedItemsByDate,
     setChecks,
     setSetChecks,
+    setChecksByDate,
+    setSetChecksByDate,
     planDate,
     setPlanDate,
     isAddOpen,
@@ -152,6 +162,11 @@ function App() {
     handleNextScheduleSubmit,
   } = useSchedule()
 
+  const allPlanItems = useMemo(
+    () => Object.values(planItemsByDate).flat(),
+    [planItemsByDate]
+  )
+
   const {
     goalsView,
     setGoalsView,
@@ -160,18 +175,23 @@ function App() {
     liftTargetWeights,
     setLiftTargetWeights,
     expandedLiftTargets,
+    aiSupportTargets,
+    setAiSupportTargets,
     streakGoal,
     setStreakGoal,
     liftTargets,
     filteredLiftTargets,
     handleLiftTargetChange,
     handleLiftTargetToggle,
+    handleAiSupportToggle,
     getWeightRecords,
-  } = useGoals({ planItems, exerciseLibrary })
+  } = useGoals({ planItems: allPlanItems, exerciseLibrary })
 
   const { suggestedExercises, isLoadingAI } = useTrainer({
     workoutRecords,
     planItems,
+    planDate,
+    aiSupportTargets,
   })
 
   useEffect(() => {
@@ -184,30 +204,51 @@ function App() {
     try {
       const parsed = JSON.parse(stored)
       const todayKey = getTodayKey()
-      const storedPlanDate =
-        typeof parsed.planDate === 'string' ? parsed.planDate : null
-      const isSameDay = storedPlanDate === todayKey
 
-      if (Array.isArray(parsed.planItems)) {
-        setPlanItems(isSameDay ? parsed.planItems : [])
+      if (parsed.planItemsByDate && typeof parsed.planItemsByDate === 'object') {
+        setPlanItemsByDate(parsed.planItemsByDate)
+      } else if (Array.isArray(parsed.planItems)) {
+        const legacyDate =
+          typeof parsed.planDate === 'string' ? parsed.planDate : todayKey
+        setPlanItemsByDate({ [legacyDate]: parsed.planItems })
       }
-      if (Array.isArray(parsed.doneItems)) {
-        setDoneItems(isSameDay ? parsed.doneItems : [])
+
+      if (parsed.doneItemsByDate && typeof parsed.doneItemsByDate === 'object') {
+        setDoneItemsByDate(parsed.doneItemsByDate)
+      } else if (Array.isArray(parsed.doneItems)) {
+        const legacyDate =
+          typeof parsed.planDate === 'string' ? parsed.planDate : todayKey
+        setDoneItemsByDate({ [legacyDate]: parsed.doneItems })
       }
+
       if (Array.isArray(parsed.exerciseLibrary)) {
         setExerciseLibrary(parsed.exerciseLibrary)
       }
-      if (Array.isArray(parsed.expandedItems)) {
-        setExpandedItems(isSameDay ? parsed.expandedItems : [])
+
+      if (parsed.expandedItemsByDate && typeof parsed.expandedItemsByDate === 'object') {
+        setExpandedItemsByDate(parsed.expandedItemsByDate)
+      } else if (Array.isArray(parsed.expandedItems)) {
+        const legacyDate =
+          typeof parsed.planDate === 'string' ? parsed.planDate : todayKey
+        setExpandedItemsByDate({ [legacyDate]: parsed.expandedItems })
       }
-      if (parsed.setChecks && typeof parsed.setChecks === 'object') {
-        setSetChecks(isSameDay ? parsed.setChecks : {})
+
+      if (parsed.setChecksByDate && typeof parsed.setChecksByDate === 'object') {
+        setSetChecksByDate(parsed.setChecksByDate)
+      } else if (parsed.setChecks && typeof parsed.setChecks === 'object') {
+        const legacyDate =
+          typeof parsed.planDate === 'string' ? parsed.planDate : todayKey
+        setSetChecksByDate({ [legacyDate]: parsed.setChecks })
       }
+
       if (parsed.workoutRecords && typeof parsed.workoutRecords === 'object') {
         setWorkoutRecords(parsed.workoutRecords)
       }
       if (parsed.liftTargetWeights && typeof parsed.liftTargetWeights === 'object') {
         setLiftTargetWeights(parsed.liftTargetWeights)
+      }
+      if (parsed.aiSupportTargets && typeof parsed.aiSupportTargets === 'object') {
+        setAiSupportTargets(parsed.aiSupportTargets)
       }
       if (
         typeof parsed.bodyWeightTarget === 'string' ||
@@ -224,7 +265,14 @@ function App() {
       if (typeof parsed.nextScheduleDate === 'string') {
         setNextScheduleDate(parsed.nextScheduleDate)
       }
-      setPlanDate(isSameDay ? storedPlanDate ?? todayKey : todayKey)
+
+      if (typeof parsed.selectedPlanDate === 'string') {
+        setPlanDate(parsed.selectedPlanDate)
+      } else if (typeof parsed.planDate === 'string') {
+        setPlanDate(parsed.planDate)
+      } else {
+        setPlanDate(todayKey)
+      }
     } catch (error) {
       console.warn('LIFT storage load failed', error)
     }
@@ -233,44 +281,31 @@ function App() {
 
   useEffect(() => {
     if (!isHydrated) return
-    const timer = window.setInterval(() => {
-      const todayKey = getTodayKey()
-      if (planDate !== todayKey) {
-        setPlanDate(todayKey)
-        setPlanItems([])
-        setDoneItems([])
-        setExpandedItems([])
-        setSetChecks({})
-      }
-    }, 60000)
-    return () => window.clearInterval(timer)
-  }, [isHydrated, planDate])
-
-  useEffect(() => {
-    if (!isHydrated) return
     const payload = {
-      planItems,
-      doneItems,
+      planItemsByDate,
+      doneItemsByDate,
       exerciseLibrary,
-      expandedItems,
-      setChecks,
+      expandedItemsByDate,
+      setChecksByDate,
       workoutRecords,
       liftTargetWeights,
+      aiSupportTargets,
       bodyWeightTarget,
       bodyWeightRecords,
       streakGoal,
       nextScheduleDate,
-      planDate,
+      selectedPlanDate: planDate,
     }
     window.localStorage.setItem(storageKey, JSON.stringify(payload))
   }, [
-    planItems,
-    doneItems,
+    planItemsByDate,
+    doneItemsByDate,
     exerciseLibrary,
-    expandedItems,
-    setChecks,
+    expandedItemsByDate,
+    setChecksByDate,
     workoutRecords,
     liftTargetWeights,
+    aiSupportTargets,
     bodyWeightTarget,
     bodyWeightRecords,
     streakGoal,
@@ -314,6 +349,16 @@ function App() {
     undoTimerRef.current = window.setTimeout(() => {
       setUndoState(null)
     }, 5000)
+  }
+
+  const showNotice = (message) => {
+    setNoticeState({ message })
+    if (noticeTimerRef.current) {
+      clearTimeout(noticeTimerRef.current)
+    }
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNoticeState(null)
+    }, 2500)
   }
 
   const handleConfirmDelete = () => {
@@ -502,6 +547,12 @@ function App() {
     handleAddOpen()
   }
 
+  const handleAcceptAISuggestionWithNotice = (suggestion, targetDate) => {
+    handleAcceptAISuggestion(suggestion, targetDate)
+    const label = formatHistoryDate(targetDate)
+    showNotice(`${label}にAIメニューを追加しました`)
+  }
+
   return (
     <div className="app">
       <HeaderHero
@@ -517,6 +568,8 @@ function App() {
             doneItems={doneItems}
             expandedItems={expandedItems}
             setChecks={setChecks}
+            planDate={planDate}
+            setPlanDate={setPlanDate}
             toggleItem={toggleItem}
             toggleExpand={toggleExpand}
             toggleSet={toggleSet}
@@ -532,7 +585,8 @@ function App() {
             handleNextScheduleOpen={handleNextScheduleOpen}
             suggestedExercises={suggestedExercises}
             isLoadingAI={isLoadingAI}
-            onAcceptAISuggestion={handleAcceptAISuggestion}
+            onAcceptAISuggestion={handleAcceptAISuggestionWithNotice}
+            getTodayKey={getTodayKey}
           />
         </main>
       )}
@@ -574,6 +628,8 @@ function App() {
             handleLiftTargetChange={handleLiftTargetChange}
             expandedLiftTargets={expandedLiftTargets}
             handleLiftTargetToggle={handleLiftTargetToggle}
+            aiSupportTargets={aiSupportTargets}
+            handleAiSupportToggle={handleAiSupportToggle}
             getWeightRecords={getWeightRecords}
             workoutRecords={workoutRecords}
             bodyWeightTarget={bodyWeightTarget}
@@ -616,6 +672,7 @@ function App() {
 
       {isAddOpen && activeTab === 'home' && (
         <AddModal
+          planDateLabel={formatHistoryDate(planDate)}
           draftTitle={draftTitle}
           setDraftTitle={setDraftTitle}
           draftMeta={draftMeta}
@@ -677,6 +734,11 @@ function App() {
         />
       )}
 
+      {noticeState && (
+        <div className="notice-toast" role="status" aria-live="polite">
+          {noticeState.message}
+        </div>
+      )}
       {undoState && <UndoToast undoState={undoState} onUndo={handleUndo} />}
 
       <FooterNav activeTab={activeTab} setActiveTab={setActiveTab} />
