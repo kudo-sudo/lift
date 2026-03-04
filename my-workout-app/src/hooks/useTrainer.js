@@ -11,57 +11,6 @@ const useTrainer = ({
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [useAI, setUseAI] = useState(true) // AI を使うかどうかのフラグ
 
-  // プレート最小化ロジック
-  const getPlateCombo = (weight) => {
-    const bar = 20
-    const loadPerSide = (weight - bar) / 2
-    if (loadPerSide < 0) return { error: true }
-    
-    const plates = {}
-    const availablePlates = [20, 10, 5, 2.5, 1.25]
-    let remaining = loadPerSide
-    
-    availablePlates.forEach((p) => {
-      plates[p] = Math.floor(remaining / p)
-      remaining -= plates[p] * p
-    })
-    
-    return { barWeight: bar, loadPerSide, plates, total: weight }
-  }
-
-  // プレート操作数を計算（付け外し回数）
-  const countPlateOperations = (combo1, combo2) => {
-    if (combo1.error || combo2.error) return Infinity
-    const allPlates = new Set([
-      ...Object.keys(combo1.plates),
-      ...Object.keys(combo2.plates),
-    ])
-    let ops = 0
-    allPlates.forEach((p) => {
-      const c1 = parseFloat(combo1.plates[p]) || 0
-      const c2 = parseFloat(combo2.plates[p]) || 0
-      if (c1 !== c2) {
-        ops += Math.abs(c2 - c1)
-      }
-    })
-    return ops
-  }
-
-  // メイン重量から候補を「プレート操作が少ない」順に返す
-  const findOptimalWeights = (mainWeight, candidates) => {
-    const mainCombo = getPlateCombo(mainWeight)
-    if (mainCombo.error) return candidates
-    
-    return candidates
-      .map((w) => ({
-        weight: w,
-        operations: countPlateOperations(mainCombo, getPlateCombo(w)),
-      }))
-      .filter((item) => item.operations !== Infinity)
-      .sort((a, b) => a.operations - b.operations)
-      .map((item) => item.weight)
-  }
-
   // ============ Bench Press Workout Generation Engine ============
   // Strict rule-based progression system
   
@@ -257,7 +206,7 @@ const useTrainer = ({
     return 'normal'
   }
 
-  const generateOptimalWorkout = (records, exerciseName) => {
+  const generateOptimalWorkout = (records) => {
     const sortedRecords = [...records].sort(
       (a, b) => new Date(b.date) - new Date(a.date)
     )
@@ -406,7 +355,7 @@ const useTrainer = ({
       if (records.length === 0) return
       if (planDate && records[0]?.date && planDate < records[0].date) return
 
-      const workout = generateOptimalWorkout(records, exerciseName)
+      const workout = generateOptimalWorkout(records)
       if (!workout) return
       const goal = getGoalContext(exerciseName, workout.estimated_1rm)
 

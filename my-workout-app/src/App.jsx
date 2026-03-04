@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import AddSection from './sections/AddSection'
-import GoalsSection from './sections/GoalsSection'
 import HeaderHero from './components/HeaderHero'
 import HistorySection from './sections/HistorySection'
 import HomeSection from './sections/HomeSection'
@@ -31,6 +30,7 @@ import './App.css'
 const storageKey = 'lift.home.v1'
 
 const initialPlan = []
+const GoalsSection = lazy(() => import('./sections/GoalsSection'))
 
 function App() {
   const [activeTab, setActiveTab] = useState('home')
@@ -650,35 +650,37 @@ function App() {
 
       {activeTab === 'goals' && (
         <main className="content">
-          <GoalsSection
-            goalsView={goalsView}
-            setGoalsView={setGoalsView}
-            liftQuery={liftQuery}
-            setLiftQuery={setLiftQuery}
-            liftTargets={liftTargets}
-            filteredLiftTargets={filteredLiftTargets}
-            liftTargetWeights={liftTargetWeights}
-            handleLiftTargetChange={handleLiftTargetChange}
-            expandedLiftTargets={expandedLiftTargets}
-            handleLiftTargetToggle={handleLiftTargetToggle}
-            aiSupportTargets={aiSupportTargets}
-            handleAiSupportToggle={handleAiSupportToggle}
-            getWeightRecords={getWeightRecords}
-            workoutRecords={workoutRecords}
-            bodyWeightTarget={bodyWeightTarget}
-            setBodyWeightTarget={setBodyWeightTarget}
-            weightChartReady={weightChartReady}
-            recentWeightRecords={recentWeightRecords}
-            yMinWeight={yMinWeight}
-            yMaxWeight={yMaxWeight}
-            targetWeightNum={targetWeightNum}
-            bodyWeightRecords={bodyWeightRecords}
-            streakGoal={streakGoal}
-            setStreakGoal={setStreakGoal}
-            weeklyWorkoutCount={weeklyWorkoutCount}
-            monthlyWorkoutCount={monthlyWorkoutCount}
-            formatShortDate={formatShortDate}
-          />
+          <Suspense fallback={null}>
+            <GoalsSection
+              goalsView={goalsView}
+              setGoalsView={setGoalsView}
+              liftQuery={liftQuery}
+              setLiftQuery={setLiftQuery}
+              liftTargets={liftTargets}
+              filteredLiftTargets={filteredLiftTargets}
+              liftTargetWeights={liftTargetWeights}
+              handleLiftTargetChange={handleLiftTargetChange}
+              expandedLiftTargets={expandedLiftTargets}
+              handleLiftTargetToggle={handleLiftTargetToggle}
+              aiSupportTargets={aiSupportTargets}
+              handleAiSupportToggle={handleAiSupportToggle}
+              getWeightRecords={getWeightRecords}
+              workoutRecords={workoutRecords}
+              bodyWeightTarget={bodyWeightTarget}
+              setBodyWeightTarget={setBodyWeightTarget}
+              weightChartReady={weightChartReady}
+              recentWeightRecords={recentWeightRecords}
+              yMinWeight={yMinWeight}
+              yMaxWeight={yMaxWeight}
+              targetWeightNum={targetWeightNum}
+              bodyWeightRecords={bodyWeightRecords}
+              streakGoal={streakGoal}
+              setStreakGoal={setStreakGoal}
+              weeklyWorkoutCount={weeklyWorkoutCount}
+              monthlyWorkoutCount={monthlyWorkoutCount}
+              formatShortDate={formatShortDate}
+            />
+          </Suspense>
         </main>
       )}
 

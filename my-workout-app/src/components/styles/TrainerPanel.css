@@ -3,10 +3,11 @@
 .trainer-panel {
   margin-top: 2rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(140deg, #0f1114 0%, #121722 100%);
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  color: #f8f8f8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
 }
 
 .trainer-header {
@@ -14,15 +15,16 @@
 }
 
 .trainer-header h3 {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-size: 1.3rem;
   font-weight: 600;
+  color: #2d9cff;
 }
 
 .trainer-subtitle {
   margin: 0;
   font-size: 0.9rem;
-  opacity: 0.9;
+  color: #9aa3af;
 }
 
 .trainer-suggestions {
@@ -31,17 +33,17 @@
 }
 
 .suggestion-card {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 14, 18, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 1rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(6px);
   transition: all 0.3s ease;
 }
 
 .suggestion-card:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(16, 20, 28, 0.9);
+  border-color: rgba(45, 156, 255, 0.45);
   transform: translateY(-2px);
 }
 
@@ -58,21 +60,13 @@
   font-weight: 600;
 }
 
-.suggestion-badge {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.3);
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .suggestion-content {
   margin-bottom: 0.75rem;
 }
 
 .suggestion-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 1rem;
   margin-bottom: 0.75rem;
@@ -82,20 +76,23 @@
 .suggestion-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .suggestion-item.highlight {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(45, 156, 255, 0.14);
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(45, 156, 255, 0.35);
+  align-items: flex-end;
+  text-align: right;
 }
 
 .suggestion-label {
   font-size: 0.8rem;
-  opacity: 0.8;
+  color: #9aa3af;
 }
 
 .suggestion-value {
@@ -105,37 +102,27 @@
 
 .suggestion-reps {
   font-size: 0.9rem;
-  opacity: 0.9;
+  color: #d7deea;
   margin-left: 0.5rem;
 }
 
 .suggestion-arrow {
   font-size: 1.2rem;
-  opacity: 0.8;
-}
-
-.suggestion-reasoning {
-  margin: 0;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  border-left: 3px solid rgba(255, 255, 255, 0.3);
+  color: #7fbfff;
 }
 
 .suggestion-goal {
   margin-top: 0.6rem;
   padding: 0.6rem;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(45, 156, 255, 0.08);
 }
 
 .suggestion-goal-title {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: #95b5d9;
   margin-bottom: 0.35rem;
 }
 
@@ -153,26 +140,13 @@
 .suggestion-goal-label {
   display: block;
   font-size: 0.68rem;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.suggestion-message {
-  margin-top: 0.6rem;
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.suggestion-message-line {
-  padding-left: 0.6rem;
-  border-left: 2px solid rgba(255, 255, 255, 0.35);
+  color: #9aa3af;
 }
 
 .suggestion-sets {
   margin-top: 0.6rem;
   padding: 0.6rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 6px;
 }
 
@@ -180,7 +154,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #95b5d9;
   margin-bottom: 0.3rem;
 }
 
@@ -201,7 +175,7 @@
 
 .set-title {
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #dfe8f5;
   min-width: 70px;
 }
 
@@ -210,20 +184,19 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.8rem;
-  opacity: 0.8;
   gap: 1rem;
 }
 
 .suggestion-time {
-  color: rgba(255, 255, 255, 0.8);
+  color: #9aa3af;
 }
 
 .accept-button {
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(45, 156, 255, 0.14);
+  border: 1px solid rgba(45, 156, 255, 0.45);
   border-radius: 6px;
-  color: white;
+  color: #dce8f9;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -233,21 +206,21 @@
 
 .accept-date-input {
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
-  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8f8f8;
   padding: 0.35rem 0.5rem;
   font-size: 0.8rem;
 }
 
 .accept-date-input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(45, 156, 255, 0.7);
 }
 
 .accept-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(45, 156, 255, 0.24);
+  border-color: rgba(45, 156, 255, 0.75);
   transform: scale(1.05);
 }
 
@@ -293,14 +266,14 @@
 .trainer-loading p {
   margin: 0;
   font-size: 0.9rem;
-  opacity: 0.9;
+  color: #b5b8bf;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top-color: rgba(255, 255, 255, 0.9);
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(45, 156, 255, 0.9);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

@@ -19,8 +19,8 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
     return (
       <section className="trainer-panel">
         <div className="trainer-header">
-          <h3>🏋️ AI Trainer</h3>
-          <p className="trainer-subtitle">AI が提案を生成中...</p>
+          <h3>次回セット提案</h3>
+          <p className="trainer-subtitle">提案を生成中...</p>
         </div>
         <div className="trainer-loading">
           <div className="spinner"></div>
@@ -37,10 +37,7 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
   return (
     <section className="trainer-panel">
       <div className="trainer-header">
-        <h3>🏋️ AI Trainer</h3>
-        <p className="trainer-subtitle">
-          {suggestedExercises.length}の種目で次回セットを提案
-        </p>
+        <h3>次回セット提案</h3>
       </div>
 
       <div className="trainer-suggestions">
@@ -50,7 +47,6 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
             <div key={exercise.id} className="suggestion-card">
               <div className="suggestion-header">
                 <h4 className="suggestion-title">{suggestion.exerciseName}</h4>
-                <span className="suggestion-badge">推奨</span>
               </div>
 
               <div className="suggestion-content">
@@ -78,8 +74,6 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                     </span>
                   </div>
                 </div>
-
-                <p className="suggestion-reasoning">{suggestion.reasoning}</p>
                 {suggestion.goal && (
                   <div className="suggestion-goal">
                     <div className="suggestion-goal-title">目標進捗</div>
@@ -101,15 +95,6 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                         <strong>{suggestion.goal.remainingToGoal}kg</strong>
                       </div>
                     </div>
-                  </div>
-                )}
-                {Array.isArray(suggestion.shortMessage) && suggestion.shortMessage.length > 0 && (
-                  <div className="suggestion-message">
-                    {suggestion.shortMessage.map((line, index) => (
-                      <div key={`${exercise.id}-msg-${index}`} className="suggestion-message-line">
-                        {line}
-                      </div>
-                    ))}
                   </div>
                 )}
                 {Array.isArray(suggestion.planSets) && suggestion.planSets.length > 0 && (
@@ -135,7 +120,7 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
 
               <div className="suggestion-footer">
                 <span className="suggestion-time">
-                  💡 AI生成
+                  提案済み
                 </span>
                 <input
                   className="accept-date-input"
