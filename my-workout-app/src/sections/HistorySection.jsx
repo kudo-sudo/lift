@@ -10,6 +10,7 @@ const HistorySection = ({
   setHistoryDate,
   recordsByDate,
   selectedHistoryRecords,
+  onEditRecord,
   formatHistoryDate,
   formatDateKey,
   getTodayKey,
@@ -91,10 +92,19 @@ const HistorySection = ({
         <div className="history-record-list">
           {selectedHistoryRecords.map((record) => (
             <div className="history-record-item" key={record.id}>
-              <div className="history-record-title">{record.type}</div>
-              <div className="history-record-meta">
-                {record.weight} kg{record.memo ? ` · ${record.memo}` : ''}
+              <div className="history-record-main">
+                <div className="history-record-title">{record.type}</div>
+                <div className="history-record-meta">
+                  {record.weight} kg{record.memo ? ` · ${record.memo}` : ''}
+                </div>
               </div>
+              <button
+                className="history-record-edit"
+                type="button"
+                onClick={() => onEditRecord?.(record)}
+              >
+                編集
+              </button>
             </div>
           ))}
         </div>

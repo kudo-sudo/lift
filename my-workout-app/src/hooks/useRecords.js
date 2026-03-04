@@ -4,12 +4,16 @@ import { formatDateKey, getTodayKey, pad2 } from '../utils/date'
 const useRecords = () => {
   const [workoutRecords, setWorkoutRecords] = useState({})
   const [isRecordOpen, setIsRecordOpen] = useState(false)
+  const [recordEditTarget, setRecordEditTarget] = useState(null)
   const [recordExercise, setRecordExercise] = useState('')
   const [recordDate, setRecordDate] = useState('')
   const [recordWeight, setRecordWeight] = useState('')
   const [recordReps, setRecordReps] = useState('')
   const [recordSets, setRecordSets] = useState('')
   const [recordMemo, setRecordMemo] = useState('')
+  const [recordOutcome, setRecordOutcome] = useState('success')
+  const [recordChestTouch, setRecordChestTouch] = useState(true)
+  const [recordAllTiersDone, setRecordAllTiersDone] = useState(false)
   const [historyDate, setHistoryDate] = useState(getTodayKey())
   const [historyMonth, setHistoryMonth] = useState(new Date().getMonth())
   const [historyYear, setHistoryYear] = useState(new Date().getFullYear())
@@ -21,14 +25,37 @@ const useRecords = () => {
     }
   }, [historyDate, historyMonth, historyYear])
 
-  const handleRecordOpen = (item) => {
+  const handleRecordOpen = (item, defaultDate) => {
     const today = new Date().toISOString().slice(0, 10)
+    const initialDate = defaultDate || today
     setRecordExercise(item.title)
-    setRecordDate(today)
+    setRecordDate(initialDate)
     setRecordWeight('')
     setRecordReps('')
     setRecordSets('')
     setRecordMemo('')
+    setRecordOutcome('success')
+    setRecordChestTouch(true)
+    setRecordAllTiersDone(false)
+    setRecordEditTarget(null)
+    setIsRecordOpen(true)
+  }
+
+  const handleRecordEditOpen = (record) => {
+    if (!record) return
+    setRecordExercise(record.type || '')
+    setRecordDate(record.date || getTodayKey())
+    setRecordWeight(record.weight ? String(record.weight) : '')
+    setRecordReps(Number.isFinite(record.reps) ? String(record.reps) : '')
+    setRecordSets(Number.isFinite(record.sets) ? String(record.sets) : '')
+    setRecordMemo(record.memo || '')
+    setRecordOutcome(record.outcome || 'success')
+    setRecordChestTouch(record.chestTouch !== false)
+    setRecordAllTiersDone(Boolean(record.allTiersDone))
+    setRecordEditTarget({
+      id: record.id,
+      exerciseName: record.type || '',
+    })
     setIsRecordOpen(true)
   }
 
@@ -40,24 +67,46 @@ const useRecords = () => {
     setRecordReps('')
     setRecordSets('')
     setRecordMemo('')
+    setRecordOutcome('success')
+    setRecordChestTouch(true)
+    setRecordAllTiersDone(false)
+    setRecordEditTarget(null)
   }
 
-  const handleRecordSubmit = (event) => {
+  const handleRecordSubmit = (event, onSaved) => {
     event.preventDefault()
     if (!recordExercise || !recordDate || !recordWeight) return
+    const memoText = recordMemo.trim()
+    const shorthandAllDone = /①\s*②\s*③.*(できた|達成|完了)|1\s*2\s*3.*(できた|達成|完了)/i.test(memoText)
+    const parsedAllTiersDone = recordAllTiersDone || shorthandAllDone
+    const parsedOutcome = recordOutcome === 'failure' || !recordChestTouch ? 'failure' : 'success'
     const entry = {
-      id: `rec-${Date.now()}`,
+      id: recordEditTarget?.id || `rec-${Date.now()}`,
       date: recordDate,
       type: recordExercise,
       weight: recordWeight,
       reps: recordReps ? parseInt(recordReps) : null,
       sets: recordSets ? parseInt(recordSets) : null,
-      memo: recordMemo.trim(),
+      memo: memoText,
+      outcome: parsedOutcome,
+      chestTouch: Boolean(recordChestTouch),
+      allTiersDone: Boolean(parsedAllTiersDone),
     }
     setWorkoutRecords((prev) => {
       const current = prev[recordExercise] || []
+      if (recordEditTarget?.id) {
+        return {
+          ...prev,
+          [recordExercise]: current.map((record) =>
+            record.id === recordEditTarget.id ? entry : record
+          ),
+        }
+      }
       return { ...prev, [recordExercise]: [entry, ...current] }
     })
+    if (typeof onSaved === 'function') {
+      onSaved(recordExercise, entry)
+    }
     handleRecordClose()
   }
 
@@ -75,6 +124,9 @@ const useRecords = () => {
           reps: record.reps || null,
           sets: record.sets || null,
           memo: record.memo || '',
+          outcome: record.outcome || null,
+          chestTouch: record.chestTouch ?? null,
+          allTiersDone: record.allTiersDone ?? false,
         })
         map.set(record.date, list)
       })
@@ -159,6 +211,7 @@ const useRecords = () => {
     setWorkoutRecords,
     isRecordOpen,
     setIsRecordOpen,
+    isRecordEditing: Boolean(recordEditTarget),
     recordExercise,
     recordDate,
     setRecordDate,
@@ -170,6 +223,12 @@ const useRecords = () => {
     setRecordSets,
     recordMemo,
     setRecordMemo,
+    recordOutcome,
+    setRecordOutcome,
+    recordChestTouch,
+    setRecordChestTouch,
+    recordAllTiersDone,
+    setRecordAllTiersDone,
     historyDate,
     setHistoryDate,
     historyMonth,
@@ -180,6 +239,7 @@ const useRecords = () => {
     monthlyWorkoutCount,
     weeklyWorkoutCount,
     handleRecordOpen,
+    handleRecordEditOpen,
     handleRecordClose,
     handleRecordSubmit,
     handleHistoryPrevMonth,

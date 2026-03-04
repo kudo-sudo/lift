@@ -106,6 +106,7 @@ function App() {
     workoutRecords,
     setWorkoutRecords,
     isRecordOpen,
+    isRecordEditing,
     recordExercise,
     recordDate,
     setRecordDate,
@@ -117,6 +118,12 @@ function App() {
     setRecordSets,
     recordMemo,
     setRecordMemo,
+    recordOutcome,
+    setRecordOutcome,
+    recordChestTouch,
+    setRecordChestTouch,
+    recordAllTiersDone,
+    setRecordAllTiersDone,
     historyDate,
     setHistoryDate,
     historyMonth,
@@ -127,6 +134,7 @@ function App() {
     monthlyWorkoutCount,
     weeklyWorkoutCount,
     handleRecordOpen,
+    handleRecordEditOpen,
     handleRecordClose,
     handleRecordSubmit,
     handleHistoryPrevMonth,
@@ -192,6 +200,7 @@ function App() {
     planItems,
     planDate,
     aiSupportTargets,
+    liftTargetWeights,
   })
 
   useEffect(() => {
@@ -525,6 +534,15 @@ function App() {
         setLiftTargetWeights((prev) => ({ ...prev, [entry.name]: removedTargetWeight }))
       }
     }
+    if (undoState.type === 'record') {
+      const { exerciseName, entry } = undoState
+      setWorkoutRecords((prev) => {
+        const current = prev[exerciseName] || []
+        const nextRecords = current.filter((record) => record.id !== entry.id)
+        if (nextRecords.length === current.length) return prev
+        return { ...prev, [exerciseName]: nextRecords }
+      })
+    }
     setUndoState(null)
     if (undoTimerRef.current) {
       clearTimeout(undoTimerRef.current)
@@ -551,6 +569,21 @@ function App() {
     handleAcceptAISuggestion(suggestion, targetDate)
     const label = formatHistoryDate(targetDate)
     showNotice(`${label}にAIメニューを追加しました`)
+  }
+
+  const handleRecordSubmitWithUndo = (event) => {
+    const wasEditing = isRecordEditing
+    handleRecordSubmit(event, (exerciseName, entry) => {
+      if (wasEditing) {
+        showNotice('記録を更新しました')
+        return
+      }
+      showUndo({
+        type: 'record',
+        exerciseName,
+        entry,
+      })
+    })
   }
 
   return (
@@ -587,14 +620,6 @@ function App() {
             isLoadingAI={isLoadingAI}
             onAcceptAISuggestion={handleAcceptAISuggestionWithNotice}
             getTodayKey={getTodayKey}
-            aiSupportTargets={aiSupportTargets}
-            workoutRecords={workoutRecords}
-            onSaveRecord={(exerciseName, record) => {
-              setWorkoutRecords((prev) => ({
-                ...prev,
-                [exerciseName]: [record, ...(prev[exerciseName] || [])],
-              }))
-            }}
           />
         </main>
       )}
@@ -671,6 +696,7 @@ function App() {
             setHistoryDate={setHistoryDate}
             recordsByDate={recordsByDate}
             selectedHistoryRecords={selectedHistoryRecords}
+            onEditRecord={handleRecordEditOpen}
             formatHistoryDate={formatHistoryDate}
             formatDateKey={formatDateKey}
             getTodayKey={getTodayKey}
@@ -698,6 +724,7 @@ function App() {
 
       {isRecordOpen && (
         <RecordModal
+          isRecordEditing={isRecordEditing}
           recordExercise={recordExercise}
           recordDate={recordDate}
           setRecordDate={setRecordDate}
@@ -709,7 +736,13 @@ function App() {
           setRecordSets={setRecordSets}
           recordMemo={recordMemo}
           setRecordMemo={setRecordMemo}
-          handleRecordSubmit={handleRecordSubmit}
+          recordOutcome={recordOutcome}
+          setRecordOutcome={setRecordOutcome}
+          recordChestTouch={recordChestTouch}
+          setRecordChestTouch={setRecordChestTouch}
+          recordAllTiersDone={recordAllTiersDone}
+          setRecordAllTiersDone={setRecordAllTiersDone}
+          handleRecordSubmit={handleRecordSubmitWithUndo}
           handleRecordClose={handleRecordClose}
         />
       )}

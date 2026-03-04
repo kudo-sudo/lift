@@ -9,9 +9,8 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
     setAcceptDates((prev) => {
       const next = { ...prev }
       suggestedExercises.forEach((exercise) => {
-        if (!next[exercise.id]) {
-          next[exercise.id] = planDate
-        }
+        const latestRecordDate = exercise.suggestion?.lastDate
+        next[exercise.id] = latestRecordDate || planDate
       })
       return next
     })
@@ -70,7 +69,7 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                   </div>
                   <div className="suggestion-arrow">→</div>
                   <div className="suggestion-item highlight">
-                    <span className="suggestion-label">今回</span>
+                    <span className="suggestion-label">今回（最重量）</span>
                     <span className="suggestion-value">
                       {suggestion.nextWeight}kg
                       <span className="suggestion-reps">
@@ -81,6 +80,29 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                 </div>
 
                 <p className="suggestion-reasoning">{suggestion.reasoning}</p>
+                {suggestion.goal && (
+                  <div className="suggestion-goal">
+                    <div className="suggestion-goal-title">目標進捗</div>
+                    <div className="suggestion-goal-grid">
+                      <div>
+                        <span className="suggestion-goal-label">目標</span>
+                        <strong>{suggestion.goal.targetWeight}kg</strong>
+                      </div>
+                      <div>
+                        <span className="suggestion-goal-label">現在地</span>
+                        <strong>推定1RM {suggestion.goal.currentEstimated1RM}kg</strong>
+                      </div>
+                      <div>
+                        <span className="suggestion-goal-label">達成率</span>
+                        <strong>{suggestion.goal.progressPercent}%</strong>
+                      </div>
+                      <div>
+                        <span className="suggestion-goal-label">残り</span>
+                        <strong>{suggestion.goal.remainingToGoal}kg</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {Array.isArray(suggestion.shortMessage) && suggestion.shortMessage.length > 0 && (
                   <div className="suggestion-message">
                     {suggestion.shortMessage.map((line, index) => (
@@ -118,7 +140,11 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                 <input
                   className="accept-date-input"
                   type="date"
-                  value={acceptDates[exercise.id] || planDate}
+                  value={
+                    acceptDates[exercise.id] ||
+                    suggestion.lastDate ||
+                    planDate
+                  }
                   onChange={(event) =>
                     setAcceptDates((prev) => ({
                       ...prev,
@@ -133,7 +159,7 @@ const TrainerPanel = ({ suggestedExercises, isLoadingAI, onAcceptSuggestion, pla
                   onClick={() =>
                     onAcceptSuggestion?.(
                       suggestion,
-                      acceptDates[exercise.id] || planDate
+                      acceptDates[exercise.id] || suggestion.lastDate || planDate
                     )
                   }
                   aria-label="Accept AI suggestion"

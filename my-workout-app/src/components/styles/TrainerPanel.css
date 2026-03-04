@@ -124,6 +124,38 @@
   border-left: 3px solid rgba(255, 255, 255, 0.3);
 }
 
+.suggestion-goal {
+  margin-top: 0.6rem;
+  padding: 0.6rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.suggestion-goal-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 0.35rem;
+}
+
+.suggestion-goal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem 0.6rem;
+}
+
+.suggestion-goal-grid strong {
+  display: block;
+  font-size: 0.86rem;
+}
+
+.suggestion-goal-label {
+  display: block;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .suggestion-message {
   margin-top: 0.6rem;
   display: grid;

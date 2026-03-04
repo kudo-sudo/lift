@@ -102,18 +102,23 @@
 
 .content {
   display: grid;
-  gap: 2rem;
+  gap: 1.2rem;
 }
 
 .section {
+  background: rgba(12, 14, 18, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 1.1rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .section-meta {
@@ -132,10 +137,15 @@
 .home-date-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 0.6rem;
 }
 
 .home-date-input {
+  appearance: none;
+  min-width: 170px;
+  height: 38px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.04);
@@ -374,26 +384,6 @@
   background: rgba(45, 156, 255, 0.18);
 }
 
-.ai-chat-button {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  background: rgba(102, 126, 234, 0.08);
-  color: #667eea;
-  font-size: 1rem;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ai-chat-button:hover {
-  border-color: rgba(102, 126, 234, 0.7);
-  background: rgba(102, 126, 234, 0.18);
-  transform: scale(1.1);
-}
-
 .pill-button {
   border: 1px solid rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.04);
@@ -538,6 +528,7 @@
 }
 
 .stats {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1.2rem;
   background: rgba(12, 14, 18, 0.7);
@@ -753,6 +744,8 @@
   place-items: center;
   z-index: 10;
   padding: 1.5rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .record-backdrop {
@@ -765,6 +758,9 @@
 .record-card {
   position: relative;
   width: min(100%, 460px);
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+  overscroll-behavior: contain;
   background: linear-gradient(150deg, #11131a 0%, #0c0f15 100%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
@@ -793,6 +789,39 @@
   color: #9aa3af;
   font-size: 0.85rem;
   margin-top: 0.25rem;
+}
+
+.record-toggle-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.record-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.record-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f8f8;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.record-toggle:hover {
+  border-color: rgba(45, 156, 255, 0.7);
+}
+
+.record-toggle.is-active {
+  border-color: rgba(45, 156, 255, 0.8);
+  color: #2d9cff;
+  background: rgba(45, 156, 255, 0.14);
 }
 
 .record-actions {
@@ -1367,6 +1396,27 @@
   border-radius: 12px;
   background: rgba(8, 10, 12, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.history-record-main {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.history-record-edit {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f8f8;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-record-edit:hover {
+  border-color: rgba(45, 156, 255, 0.7);
+  color: #2d9cff;
 }
 .history-notice {
   margin-top: 1.2rem;

@@ -5,6 +5,8 @@ const UndoToast = ({ undoState, onUndo }) => (
         ? `${undoState.item.title} を削除しました`
         : undoState.type === 'set'
           ? `${undoState.planTitle} / ${undoState.setItem.title} を削除しました`
+          : undoState.type === 'record'
+            ? `${undoState.exerciseName} の記録を保存しました`
           : `${undoState.entry.name} を削除しました`}
     </span>
     <button className="undo-button" type="button" onClick={onUndo}>

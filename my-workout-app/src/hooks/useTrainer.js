@@ -1,13 +1,15 @@
 import { useMemo, useState, useEffect } from 'react'
 
-const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) => {
+const useTrainer = ({
+  workoutRecords,
+  planItems,
+  planDate,
+  aiSupportTargets,
+  liftTargetWeights,
+}) => {
   const [aiSuggestions, setAiSuggestions] = useState({})
   const [isLoadingAI, setIsLoadingAI] = useState(false)
   const [useAI, setUseAI] = useState(true) // AI を使うかどうかのフラグ
-  const aiAddedExercises = useMemo(
-    () => new Set(planItems?.filter((item) => item.source === 'ai').map((item) => item.title)),
-    [planItems]
-  )
 
   // プレート最小化ロジック
   const getPlateCombo = (weight) => {
@@ -72,6 +74,100 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     return weight * (1 + reps / 30)
   }
 
+  const sortRecordsNewestFirst = (records) => {
+    return [...(records || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
+  }
+
+  const pickHeaviestSet = (planSets) => {
+    if (!Array.isArray(planSets) || planSets.length === 0) return null
+    return [...planSets].sort((a, b) => (b.weight || 0) - (a.weight || 0))[0]
+  }
+
+  const getGoalContext = (exerciseName, estimatedOneRM) => {
+    const rawTarget = liftTargetWeights?.[exerciseName]
+    const targetWeight = Number.parseFloat(rawTarget)
+    if (!Number.isFinite(targetWeight) || targetWeight <= 0) {
+      return null
+    }
+
+    const progress = Math.max(0, Math.min(100, (estimatedOneRM / targetWeight) * 100))
+    const remaining = Math.max(0, targetWeight - estimatedOneRM)
+
+    return {
+      targetWeight: roundToPlate(targetWeight),
+      currentEstimated1RM: roundToPlate(estimatedOneRM),
+      progressPercent: Number(progress.toFixed(1)),
+      remainingToGoal: roundToPlate(remaining),
+    }
+  }
+
+  const getNextTopWeight = ({
+    latestWeight,
+    consecutiveSuccess,
+    consecutiveFailure,
+    depth,
+    fatigue,
+  }) => {
+    if (!Number.isFinite(latestWeight) || latestWeight <= 0) return null
+    if (fatigue >= 7) return null
+
+    if (depth === 'shallow') {
+      return roundToPlate(latestWeight)
+    }
+    if (consecutiveSuccess >= 2) {
+      return roundToPlate(latestWeight + 2.5)
+    }
+    if (consecutiveFailure >= 2) {
+      return roundToPlate(Math.max(20, latestWeight - 2.5))
+    }
+    return roundToPlate(latestWeight)
+  }
+
+  const enforceTopSetRule = ({ suggestion, records }) => {
+    if (!suggestion || !Array.isArray(suggestion.planSets) || suggestion.planSets.length === 0) {
+      return suggestion
+    }
+
+    const sorted = sortRecordsNewestFirst(records)
+    const latest = sorted[0]
+    if (!latest) return suggestion
+
+    const latestWeight = Number.parseFloat(latest.weight)
+    const depth = estimateDepth(latest)
+    const fatigue = estimateFatigue(sorted)
+    const { success: consecutiveSuccess, failure: consecutiveFailure } = getConsecutiveMetrics(sorted)
+
+    const expectedTop = getNextTopWeight({
+      latestWeight,
+      consecutiveSuccess,
+      consecutiveFailure,
+      depth,
+      fatigue,
+    })
+
+    if (!expectedTop) return suggestion
+
+    const updatedPlanSets = suggestion.planSets.map((setItem, index) => {
+      if (index !== 0) return setItem
+      const isTopSet =
+        `${setItem.title || ''}`.includes('①') || `${setItem.title || ''}`.toLowerCase().includes('neural')
+      if (!isTopSet) return setItem
+      return {
+        ...setItem,
+        weight: expectedTop,
+      }
+    })
+
+    const heaviest = pickHeaviestSet(updatedPlanSets)
+    return {
+      ...suggestion,
+      planSets: updatedPlanSets,
+      nextWeight: heaviest?.weight ?? suggestion.nextWeight,
+      nextReps: heaviest?.reps ?? suggestion.nextReps,
+      nextSets: heaviest?.sets ?? suggestion.nextSets,
+    }
+  }
+
   const calculateTonnage = (tiers) => {
     let total = 0
     if (tiers.neural) {
@@ -86,37 +182,56 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     return total
   }
 
-  const getConsecutiveMetrics = (records, latestWeight) => {
-    if (records.length < 2) return { success: 0, failure: 0 }
-    
-    let successCount = 0
-    let failureCount = 0
-    
-    for (let i = 0; i < records.length - 1; i++) {
-      const curr = parseFloat(records[i].weight) || 0
-      const prev = parseFloat(records[i + 1].weight) || 0
-      if (curr > prev) {
-        successCount++
-        failureCount = 0
-      } else if (curr < prev) {
-        failureCount++
-        successCount = 0
+  const parseRecordOutcome = (record) => {
+    if (record?.outcome === 'success' || record?.outcome === 'failure') {
+      return record.outcome
+    }
+    const memo = (record?.memo || '').toLowerCase()
+    const reps = Number.parseInt(record?.reps) || 0
+    const shorthandAllDone = /①\s*②\s*③.*(できた|達成|完了)|1\s*2\s*3.*(できた|達成|完了)/i.test(memo)
+    if (record?.allTiersDone || shorthandAllDone) {
+      return 'success'
+    }
+    const shallow =
+      memo.includes('shallow') || memo.includes('浅い') || memo.includes('partial')
+    const failed =
+      memo.includes('fail') || memo.includes('failed') || memo.includes('失敗') || memo.includes('潰')
+
+    if (failed || shallow || reps <= 0) return 'failure'
+    return 'success'
+  }
+
+  const getConsecutiveMetrics = (records) => {
+    if (!records?.length) return { success: 0, failure: 0 }
+
+    const outcomes = records.map(parseRecordOutcome)
+    const first = outcomes[0]
+    let count = 0
+
+    for (const outcome of outcomes) {
+      if (outcome === first) {
+        count += 1
+      } else {
+        break
       }
     }
-    
-    return { success: successCount, failure: failureCount }
+
+    return {
+      success: first === 'success' ? count : 0,
+      failure: first === 'failure' ? count : 0,
+    }
   }
 
   const getPreviousTonnage = (records) => {
     if (records.length === 0) return 0
     let total = 0
-    records.slice(0, 3).forEach((r) => {
+    records.slice(0, 1).forEach((r) => {
       const w = parseFloat(r.weight) || 0
       const reps = parseInt(r.reps) || 5
       const sets = parseInt(r.sets) || 3
       total += w * reps * sets
     })
-    return total / Math.min(3, records.length)
+    return total
   }
 
   const estimateFatigue = (records) => {
@@ -133,6 +248,8 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
   }
 
   const estimateDepth = (record) => {
+    if (record?.chestTouch === false) return 'shallow'
+    if (record?.chestTouch === true) return 'normal'
     const memo = (record.memo || '').toLowerCase()
     if (memo.includes('shallow') || memo.includes('浅い') || memo.includes('partial')) {
       return 'shallow'
@@ -159,8 +276,7 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     const fatigue = estimateFatigue(sortedRecords)
     const previousTonnage = getPreviousTonnage(sortedRecords)
     const { success: consecutiveSuccess, failure: consecutiveFailure } = getConsecutiveMetrics(
-      sortedRecords,
-      topSetWeight
+      sortedRecords
     )
 
     // === 1RM ESTIMATION (Epley) ===
@@ -178,27 +294,47 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     let nextSession = {}
     let focus = 'balanced'
 
-    // Neural Tier (90% of 1RM, 1-2 reps, 2-4 sets)
-    let neuralWeight = roundToPlate(estimatedOneRM * 0.9 + progressionAdjustment)
-    let neuralReps = 2
-    let neuralSets = 3
+    // Neural Tier (トップ実績基準で維持/増減)
+    let neuralWeight = getNextTopWeight({
+      latestWeight: topSet.weight,
+      consecutiveSuccess,
+      consecutiveFailure,
+      depth,
+      fatigue,
+    }) ?? roundToPlate(estimatedOneRM * 0.935 + progressionAdjustment)
+    let neuralReps = 1
+    let neuralSets = 2
     let neuralPaused = false
 
-    // Strength Tier (80-85% of 1RM, 2-4 reps, 3-4 sets)
-    let strengthWeight = roundToPlate(estimatedOneRM * 0.825 + progressionAdjustment)
+    // Strength Tier (85-88% of 1RM, 2-4 reps, 3 sets)
+    let strengthWeight = roundToPlate(estimatedOneRM * 0.865 + progressionAdjustment)
     let strengthReps = 3
-    let strengthSets = 4
+    let strengthSets = 3
 
-    // Volume Tier (70-75% of 1RM, 5-8 reps, 2-4 sets)
-    let volumeWeight = roundToPlate(estimatedOneRM * 0.725 + progressionAdjustment)
-    let volumeReps = 6
+    // Volume Tier (75-80% of 1RM, around 5 reps, 3 sets)
+    let volumeWeight = roundToPlate(estimatedOneRM * 0.775 + progressionAdjustment)
+    let volumeReps = 5
     let volumeSets = 3
 
     // === FORM CORRECTION RULE ===
     if (depth === 'shallow') {
-      neuralWeight = roundToPlate(neuralWeight - 2.5)
+      // フォーム崩れ日は据え置き（進歩ロジックの増減を無効化）
+      neuralWeight = roundToPlate(estimatedOneRM * 0.935)
+      strengthWeight = roundToPlate(estimatedOneRM * 0.865)
+      volumeWeight = roundToPlate(estimatedOneRM * 0.775)
       neuralPaused = true
       focus = 'form_correction'
+    }
+
+    // === FAILURE ADJUSTMENT RULE ===
+    // 1回でも失敗した場合は、次回を少し軽くして立て直す
+    if (consecutiveFailure >= 1 && depth !== 'shallow') {
+      strengthWeight = roundToPlate(Math.max(20, strengthWeight - 2.5))
+      volumeWeight = roundToPlate(Math.max(20, volumeWeight - 2.5))
+      strengthSets = 2
+      volumeSets = 2
+      volumeReps = Math.max(4, volumeReps - 1)
+      focus = 'recovery'
     }
 
     // === FATIGUE ADJUSTMENT RULE ===
@@ -266,34 +402,19 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     planItems?.forEach((item) => {
       const exerciseName = item.title
       if (!aiSupportTargets?.[exerciseName]) return
-      if (aiAddedExercises.has(exerciseName)) return
-      const records = workoutRecords[exerciseName] || []
-      const recordsForDate = planDate
-        ? records.filter((record) => record.date === planDate)
-        : records
+      const records = sortRecordsNewestFirst(workoutRecords[exerciseName] || [])
+      if (records.length === 0) return
+      if (planDate && records[0]?.date && planDate < records[0].date) return
 
-      if (recordsForDate.length === 0) return
-
-      const workout = generateOptimalWorkout(recordsForDate, exerciseName)
+      const workout = generateOptimalWorkout(records, exerciseName)
       if (!workout) return
-
-      // プレート最小化と組み合わせる
-      const mainWeight = workout.next_session.strength.weight
-      const warmupCandidates = [
-        mainWeight - 20,
-        mainWeight - 10,
-        mainWeight - 5,
-        workout.next_session.neural?.weight || mainWeight - 20,
-      ].filter((w) => w > 20)
-
-      const warmupWeights = findOptimalWeights(mainWeight, warmupCandidates)
-      const optimizedNeuralWeight = warmupWeights.length > 0 ? warmupWeights[0] : mainWeight - 20
+      const goal = getGoalContext(exerciseName, workout.estimated_1rm)
 
       const planSets = []
       if (workout.next_session.neural) {
         planSets.push({
           title: '① Neural',
-          weight: optimizedNeuralWeight,
+          weight: workout.next_session.neural.weight,
           reps: workout.next_session.neural.reps,
           sets: workout.next_session.neural.sets,
           paused: workout.next_session.neural.paused,
@@ -314,32 +435,47 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
         sets: workout.next_session.volume.sets,
       })
 
+      const displaySet = pickHeaviestSet(planSets)
+
       const focusMsg = {
         balanced: 'バランスの取れたセッション',
         form_correction: 'フォーム改善優先',
         recovery: 'リカバリー優先',
       }[workout.focus] || 'バランスの取れたセッション'
 
-      suggestions[exerciseName] = {
+      const baseSuggestion = {
         exerciseName,
-        lastWeight: recordsForDate[0]?.weight,
-        lastReps: recordsForDate[0]?.reps,
-        lastSets: recordsForDate[0]?.sets,
+        lastDate: records[0]?.date,
+        lastWeight: records[0]?.weight,
+        lastReps: records[0]?.reps,
+        lastSets: records[0]?.sets,
         shortMessage: [focusMsg, `推定1RM: ${workout.estimated_1rm}kg`],
         planSets,
-        nextWeight: workout.next_session.strength.weight,
-        nextReps: workout.next_session.strength.reps,
-        nextSets: workout.next_session.strength.sets,
+        nextWeight: displaySet?.weight ?? workout.next_session.strength.weight,
+        nextReps: displaySet?.reps ?? workout.next_session.strength.reps,
+        nextSets: displaySet?.sets ?? workout.next_session.strength.sets,
         reasoning: `連続成功${workout._debug.consecutive_success}回, 連続失敗${workout._debug.consecutive_failure}回, 疲労度${workout._debug.fatigue}/10`,
         timestamp: new Date().toISOString(),
         focus: workout.focus,
         estimated_1rm: workout.estimated_1rm,
         projected_tonnage: workout.next_session.projected_tonnage,
+        goal,
       }
+
+      suggestions[exerciseName] = enforceTopSetRule({
+        suggestion: baseSuggestion,
+        records,
+      })
     })
 
     return suggestions
-  }, [workoutRecords, planItems, planDate, aiSupportTargets, aiAddedExercises])
+  }, [
+    workoutRecords,
+    planItems,
+    planDate,
+    aiSupportTargets,
+    liftTargetWeights,
+  ])
 
   // AI による提案を取得
   useEffect(() => {
@@ -355,32 +491,48 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
       for (const item of planItems) {
         const exerciseName = item.title
         if (!aiSupportTargets?.[exerciseName]) continue
-        if (aiAddedExercises.has(exerciseName)) continue
-        const records = workoutRecords[exerciseName] || []
-        const recordsForDate = planDate
-          ? records.filter((record) => record.date === planDate)
-          : records
-
-        if (recordsForDate.length === 0) continue
+        const records = sortRecordsNewestFirst(workoutRecords[exerciseName] || [])
+        if (records.length === 0) continue
+        if (planDate && records[0]?.date && planDate < records[0].date) continue
+        const latestRecord = records[0]
+        const estimatedOneRM = estimateOneRM(
+          Number.parseFloat(latestRecord?.weight) || 0,
+          Number.parseInt(latestRecord?.reps) || 1
+        )
+        const goal = getGoalContext(exerciseName, estimatedOneRM)
+        const targetWeight = goal?.targetWeight
 
         try {
           const response = await fetch('/api/trainer', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              records: recordsForDate.slice(0, 5),
+              records: records.slice(0, 5),
               exerciseName,
+              targetWeight,
             }),
           })
 
           if (response.ok) {
             const data = await response.json()
             if (data.success) {
-              newSuggestions[exerciseName] = {
+              const baseSuggestion = {
                 ...data.suggestion,
-                lastWeight: recordsForDate[0]?.weight,
-                lastReps: recordsForDate[0]?.reps,
-                lastSets: recordsForDate[0]?.sets,
+                lastDate: records[0]?.date,
+                lastWeight: records[0]?.weight,
+                lastReps: records[0]?.reps,
+                lastSets: records[0]?.sets,
+                goal,
+              }
+              newSuggestions[exerciseName] = enforceTopSetRule({
+                suggestion: baseSuggestion,
+                records,
+              })
+              const displaySet = pickHeaviestSet(newSuggestions[exerciseName].planSets)
+              if (displaySet) {
+                newSuggestions[exerciseName].nextWeight = displaySet.weight
+                newSuggestions[exerciseName].nextReps = displaySet.reps
+                newSuggestions[exerciseName].nextSets = displaySet.sets
               }
             }
           }
@@ -394,7 +546,14 @@ const useTrainer = ({ workoutRecords, planItems, planDate, aiSupportTargets }) =
     }
 
     fetchAISuggestions()
-  }, [workoutRecords, planItems, planDate, useAI, aiSupportTargets, aiAddedExercises])
+  }, [
+    workoutRecords,
+    planItems,
+    planDate,
+    useAI,
+    aiSupportTargets,
+    liftTargetWeights,
+  ])
 
   // AI または ルールベースの提案を返す
   const trainerSuggestions = useMemo(() => {

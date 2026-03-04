@@ -1,4 +1,5 @@
 const RecordModal = ({
+  isRecordEditing,
   recordExercise,
   recordDate,
   setRecordDate,
@@ -10,6 +11,12 @@ const RecordModal = ({
   setRecordSets,
   recordMemo,
   setRecordMemo,
+  recordOutcome,
+  setRecordOutcome,
+  recordChestTouch,
+  setRecordChestTouch,
+  recordAllTiersDone,
+  setRecordAllTiersDone,
   handleRecordSubmit,
   handleRecordClose,
 }) => (
@@ -18,7 +25,7 @@ const RecordModal = ({
     <form className="record-card" onSubmit={handleRecordSubmit}>
       <div className="record-header">
         <div>
-          <div className="record-title">Record</div>
+          <div className="record-title">{isRecordEditing ? 'Edit Record' : 'Record'}</div>
           <div className="record-subtitle">{recordExercise}</div>
         </div>
         <button
@@ -91,6 +98,65 @@ const RecordModal = ({
           placeholder="例: フォーム良かった"
         />
       </label>
+      <div className="record-toggle-group">
+        <span className="field-label">結果</span>
+        <div className="record-toggle-row">
+          <button
+            className={`record-toggle ${recordOutcome === 'success' ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setRecordOutcome('success')}
+          >
+            成功
+          </button>
+          <button
+            className={`record-toggle ${recordOutcome === 'failure' ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setRecordOutcome('failure')}
+          >
+            失敗
+          </button>
+        </div>
+      </div>
+      <div className="record-toggle-group">
+        <span className="field-label">フォーム</span>
+        <div className="record-toggle-row">
+          <button
+            className={`record-toggle ${recordChestTouch ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setRecordChestTouch(true)}
+          >
+            胸タッチ達成
+          </button>
+          <button
+            className={`record-toggle ${!recordChestTouch ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setRecordChestTouch(false)}
+          >
+            浅め/未達
+          </button>
+        </div>
+      </div>
+      <div className="record-toggle-group">
+        <span className="field-label">AIメニュー達成</span>
+        <div className="record-toggle-row">
+          <button
+            className={`record-toggle ${recordAllTiersDone ? 'is-active' : ''}`}
+            type="button"
+            onClick={() => setRecordAllTiersDone((prev) => !prev)}
+          >
+            ①②③できた
+          </button>
+          <button
+            className="record-toggle"
+            type="button"
+            onClick={() =>
+              setRecordMemo((prev) => (prev ? `${prev} / ①②③できた` : '①②③できた'))
+            }
+          >
+            メモに追加
+          </button>
+        </div>
+      </div>
       <div className="record-actions">
         <button className="ghost-button" type="button" onClick={handleRecordClose}>
           Cancel

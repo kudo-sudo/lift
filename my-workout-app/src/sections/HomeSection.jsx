@@ -1,6 +1,4 @@
 import TrainerPanel from '../components/TrainerPanel'
-import AIChatModal from '../components/modals/AIChatModal'
-import { useState } from 'react'
 
 const HomeSection = ({
   planItems,
@@ -26,17 +24,7 @@ const HomeSection = ({
   isLoadingAI,
   onAcceptAISuggestion,
   getTodayKey,
-  aiSupportTargets,
-  workoutRecords,
-  onSaveRecord,
 }) => {
-  const [aiChatOpen, setAiChatOpen] = useState(false)
-  const [aiChatExercise, setAiChatExercise] = useState('')
-
-  const handleAIChatOpen = (exerciseName) => {
-    setAiChatExercise(exerciseName)
-    setAiChatOpen(true)
-  }
 
   return (
     <>
@@ -74,6 +62,7 @@ const HomeSection = ({
             Today
           </button>
         </div>
+
         {planItems.length === 0 && (
           <div className="empty-state">
             <div className="empty-title">この日のメニューがありません</div>
@@ -87,7 +76,6 @@ const HomeSection = ({
             const isDone = doneItems.includes(item.id)
             const isExpanded = expandedItems.includes(item.id)
             const setStatus = setChecks[item.id] || []
-            const hasAISupport = aiSupportTargets?.[item.title]
 
             return (
               <li
@@ -122,21 +110,10 @@ const HomeSection = ({
                         </svg>
                       </button>
                     )}
-                    {hasAISupport && (
-                      <button
-                        className="ai-chat-button"
-                        type="button"
-                        onClick={() => handleAIChatOpen(item.title)}
-                        aria-label="Chat with AI trainer"
-                        title="AIで記録"
-                      >
-                        💬
-                      </button>
-                    )}
                     <button
                       className="record-button"
                       type="button"
-                      onClick={() => handleRecordOpen(item)}
+                      onClick={() => handleRecordOpen(item, planDate)}
                       aria-label="Record workout"
                     >
                       <svg viewBox="0 0 24 24">
@@ -230,15 +207,6 @@ const HomeSection = ({
           </div>
         </button>
       </section>
-
-      <AIChatModal
-        isOpen={aiChatOpen}
-        onClose={() => setAiChatOpen(false)}
-        exerciseName={aiChatExercise}
-        workoutRecords={workoutRecords}
-        aiSupportTargets={aiSupportTargets}
-        onSaveRecord={onSaveRecord}
-      />
     </>
   )
 }
