@@ -1,0 +1,23 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- 背景: 清潔感のある白 -->
+<rect width="512" height="512" rx="80" fill="#ffffff"/>
+
+<!-- バーベルのシャフト: 黒 -->
+
+<rect x="80" y="240" width="352" height="32" rx="16" fill="#000000"/>
+
+<!-- 左側のプレート: 黒とコントラスト用の濃いグレー -->
+
+<rect x="140" y="140" width="45" height="232" rx="4" fill="#000000"/>
+<rect x="195" y="160" width="30" height="192" rx="4" fill="#333333"/>
+
+<!-- 右側のプレート: 黒とコントラスト用の濃いグレー -->
+
+<rect x="327" y="140" width="45" height="232" rx="4" fill="#000000"/>
+<rect x="287" y="160" width="30" height="192" rx="4" fill="#333333"/>
+
+<!-- 留め具: アクセントのグレー -->
+
+<rect x="120" y="230" width="15" height="52" rx="2" fill="#666666"/>
+<rect x="377" y="230" width="15" height="52" rx="2" fill="#666666"/>
+</svg>
